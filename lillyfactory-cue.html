@@ -18,63 +18,47 @@
   button{font-family:inherit; cursor:pointer; border:none;}
   input,textarea{font-family:inherit;}
 
-  /* 시작 화면 */
-  #pick{position:fixed; inset:0; display:flex; flex-direction:column;
-    align-items:center; justify-content:center; gap:28px; padding:24px; text-align:center; overflow:auto;}
+  #pick{position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:28px; padding:24px; text-align:center; overflow:auto;}
   #pick h1{font-size:clamp(26px,5vw,40px); font-weight:800; letter-spacing:-.02em;}
   #pick h1 b{color:var(--accent);}
   #pick p{color:var(--dim); font-size:15px; line-height:1.6; max-width:460px;}
   .picks{display:flex; gap:18px; flex-wrap:wrap; justify-content:center;}
-  .pickcard{background:var(--panel); border:1px solid var(--line); border-radius:20px;
-    width:220px; padding:30px 22px; transition:.15s; display:flex; flex-direction:column; gap:10px; align-items:center;}
+  .pickcard{background:var(--panel); border:1px solid var(--line); border-radius:20px; width:220px; padding:30px 22px; transition:.15s; display:flex; flex-direction:column; gap:10px; align-items:center;}
   .pickcard:hover{border-color:var(--accent); transform:translateY(-3px);}
   .pickcard .emo{font-size:46px;}
   .pickcard .t{font-size:20px; font-weight:700;}
   .pickcard .d{font-size:13px; color:var(--dim); line-height:1.5;}
 
-  /* DB 설정 박스 */
-  #setup{display:none; max-width:480px; width:100%; background:var(--panel);
-    border:1px solid var(--line); border-radius:18px; padding:24px; text-align:left;}
+  #setup{display:none; max-width:480px; width:100%; background:var(--panel); border:1px solid var(--line); border-radius:18px; padding:24px; text-align:left;}
   #setup.show{display:block;}
   #setup h3{font-size:16px; margin-bottom:8px;}
   #setup p{font-size:13px; color:var(--dim); margin-bottom:14px;}
-  #setup input{width:100%; background:#0a0a0c; border:1px solid var(--line); border-radius:11px;
-    color:var(--ink); font-size:14px; padding:13px; outline:none; margin-bottom:12px;}
+  #setup input{width:100%; background:#0a0a0c; border:1px solid var(--line); border-radius:11px; color:var(--ink); font-size:14px; padding:13px; outline:none; margin-bottom:12px;}
   #setup input:focus{border-color:var(--accent);}
-  #setup button{width:100%; background:var(--accent); color:#fff; border-radius:11px;
-    padding:14px; font-size:15px; font-weight:700;}
+  #setup button{width:100%; background:var(--accent); color:#fff; border-radius:11px; padding:14px; font-size:15px; font-weight:700;}
   #setup .err{color:var(--off); font-size:13px; margin-top:10px; min-height:18px;}
 
-  /* 상태바 */
-  .topbar{position:fixed; top:0; left:0; right:0; height:46px; display:flex; align-items:center;
-    gap:12px; padding:0 14px; background:rgba(10,10,12,.85); backdrop-filter:blur(8px);
-    border-bottom:1px solid var(--line); z-index:50; font-size:13px;}
+  .topbar{position:fixed; top:0; left:0; right:0; height:46px; display:flex; align-items:center; gap:12px; padding:0 14px; background:rgba(10,10,12,.85); backdrop-filter:blur(8px); border-bottom:1px solid var(--line); z-index:50; font-size:13px;}
   .dot{width:9px; height:9px; border-radius:50%; background:var(--off); flex:none;}
   .dot.on{background:var(--ok); animation:pulse 2s infinite;}
   @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(63,214,138,.45);}70%{box-shadow:0 0 0 7px rgba(63,214,138,0);}100%{box-shadow:0 0 0 0 rgba(63,214,138,0);}}
   .topbar .ch{color:var(--dim); font-variant-numeric:tabular-nums;}
   .topbar .spacer{flex:1;}
-  .tbtn{background:var(--panel); border:1px solid var(--line); color:var(--ink);
-    border-radius:9px; padding:7px 12px; font-size:13px; font-weight:600;}
+  .tbtn{background:var(--panel); border:1px solid var(--line); color:var(--ink); border-radius:9px; padding:7px 12px; font-size:13px; font-weight:600;}
   .tbtn:hover{border-color:var(--dim);}
 
-  /* 컨트롤 */
   #ctrl{display:none; height:100%; padding:60px 18px 18px; max-width:1100px; margin:0 auto; gap:14px;}
   #ctrl.show{display:grid; grid-template-rows:auto auto 1fr auto;}
-  .preview{background:#000; border:2px solid var(--line); border-radius:16px;
-    min-height:120px; display:flex; align-items:center; justify-content:center;
-    padding:18px 22px; text-align:center; position:relative; overflow:hidden;}
+  .preview{background:#000; border:2px solid var(--line); border-radius:16px; min-height:120px; display:flex; align-items:center; justify-content:center; gap:14px; padding:18px 22px; text-align:center; position:relative; overflow:hidden;}
   .preview .lbl{position:absolute; top:8px; left:12px; font-size:11px; color:var(--dim); letter-spacing:.08em;}
+  #cpvimg{display:none; max-height:84px; max-width:140px; object-fit:contain; border-radius:6px; flex:none;}
   .preview .txt{font-size:clamp(22px,3.4vw,40px); font-weight:800; line-height:1.25; white-space:pre-wrap; word-break:keep-all;}
   .preview .txt.empty{color:#3a3a44; font-weight:600; font-size:20px;}
-  .editor textarea{width:100%; min-height:96px; resize:none; background:var(--panel);
-    border:1px solid var(--line); border-radius:14px; color:var(--ink);
-    font-size:22px; font-weight:700; line-height:1.35; padding:16px 18px; outline:none;}
+  .editor textarea{width:100%; min-height:96px; resize:none; background:var(--panel); border:1px solid var(--line); border-radius:14px; color:var(--ink); font-size:22px; font-weight:700; line-height:1.35; padding:16px 18px; outline:none;}
   .editor textarea:focus{border-color:var(--accent);}
   .editor textarea::placeholder{color:#44444f; font-weight:500;}
   .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
-  .act{flex:1; min-width:130px; border-radius:14px; padding:18px 14px; font-size:18px; font-weight:800;
-    transition:.12s; display:flex; align-items:center; justify-content:center; gap:8px;}
+  .act{flex:1; min-width:120px; border-radius:14px; padding:18px 14px; font-size:18px; font-weight:800; transition:.12s; display:flex; align-items:center; justify-content:center; gap:8px;}
   .act:active{transform:scale(.97);}
   .send{background:var(--accent); color:#fff;}
   .send:hover{background:#ff5680;}
@@ -82,26 +66,27 @@
   .blink:hover{background:#ffe06b;}
   .clear{background:var(--panel); color:var(--ink); border:1px solid var(--line); flex:none; min-width:auto; padding:18px 20px;}
   .clear:hover{border-color:var(--off); color:var(--off);}
+  .imgbtn{background:var(--panel); color:var(--ink); border:1px solid var(--line); flex:none; min-width:auto; padding:18px 18px;}
+  .imgbtn:hover{border-color:var(--accent); color:var(--accent);}
   .quick{display:flex; flex-direction:column; gap:8px; overflow:auto; padding-right:4px;}
   .quick .qh{display:flex; align-items:center; justify-content:space-between;}
   .quick .qh span{font-size:12px; color:var(--dim); letter-spacing:.06em;}
   .quick .qh button{background:none; border:1px solid var(--line); color:var(--dim); border-radius:8px; padding:5px 10px; font-size:12px;}
   .qgrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px;}
-  .qbtn{background:var(--panel); border:1px solid var(--line); color:var(--ink); text-align:left;
-    border-radius:11px; padding:13px 14px; font-size:15px; font-weight:600; line-height:1.3; word-break:keep-all; transition:.12s;}
+  .qbtn{background:var(--panel); border:1px solid var(--line); color:var(--ink); text-align:left; border-radius:11px; padding:13px 14px; font-size:15px; font-weight:600; line-height:1.3; word-break:keep-all; transition:.12s;}
   .qbtn:hover{border-color:var(--accent); background:#1c1c22;}
   .qedit{display:none;} .qedit.show{display:block;}
-  .qedit textarea{width:100%; height:150px; background:var(--panel); border:1px solid var(--line);
-    border-radius:11px; color:var(--ink); font-size:14px; line-height:1.6; padding:12px; outline:none; resize:none;}
+  .qedit textarea{width:100%; height:150px; background:var(--panel); border:1px solid var(--line); border-radius:11px; color:var(--ink); font-size:14px; line-height:1.6; padding:12px; outline:none; resize:none;}
   .qedit .hint{font-size:12px; color:var(--dim); margin:6px 2px;}
   .sizectl{display:flex; align-items:center; gap:8px; color:var(--dim); font-size:13px;}
   .sizectl button{width:34px; height:34px; border-radius:9px; background:var(--panel); border:1px solid var(--line); color:var(--ink); font-size:18px; font-weight:700;}
 
-  /* 디스플레이 */
-  #disp{display:none; position:fixed; inset:0; background:#000; align-items:center; justify-content:center; padding:4vh 4vw; text-align:center;}
+  #disp{display:none; position:fixed; inset:0; background:#000; flex-direction:column; align-items:center; justify-content:center; padding:3vh 3vw; text-align:center; gap:2vh;}
   #disp.show{display:flex;}
+  #dimg{display:none; max-width:97%; max-height:82vh; object-fit:contain; border-radius:6px;}
   #disp .big{font-size:8vw; font-weight:800; line-height:1.18; white-space:pre-wrap; word-break:keep-all; transition:font-size .15s; letter-spacing:-.01em;}
   #disp .big.empty{color:#1c1c22; font-weight:700; font-size:4vw;}
+  #disp .big.overlay{font-size:4.2vw;}
   #disp.flash{animation:flashbg .5s steps(1) 10;}
   #disp.flash .big{animation:flashtx .5s steps(1) 10;}
   @keyframes flashbg{0%{background:#000;}50%{background:var(--accent);}}
@@ -111,7 +96,6 @@
   .dsize:hover{opacity:1;}
   .dsize button{width:38px; height:38px; border-radius:10px; background:#141418; border:1px solid #26262e; color:#888; font-size:18px; font-weight:700;}
 
-  /* 모달 */
   #modal{position:fixed; inset:0; background:rgba(0,0,0,.8); display:none; align-items:center; justify-content:center; z-index:100; padding:20px;}
   #modal.show{display:flex;}
   .mcard{background:var(--panel); border:1px solid var(--line); border-radius:22px; padding:30px; max-width:380px; width:100%; text-align:center;}
@@ -128,7 +112,7 @@
 
 <div id="pick">
   <h1><b>릴리팩토리</b> 방송 큐</h1>
-  <p>컴퓨터에서 멘트를 입력하면 갤탭 화면에 큰 글씨로 바로 뜹니다.<br>이 기기는 어느 쪽인가요?</p>
+  <p>컴퓨터에서 멘트·이미지를 보내면 갤탭 화면에 바로 뜹니다.<br>이 기기는 어느 쪽인가요?</p>
   <div class="picks">
     <button class="pickcard" onclick="startCtrl()">
       <span class="emo">💻</span><span class="t">컴퓨터 (입력)</span>
@@ -136,12 +120,12 @@
     </button>
     <button class="pickcard" onclick="startDisp()">
       <span class="emo">📺</span><span class="t">갤탭 (화면)</span>
-      <span class="d">경희님이 보는 쪽.<br>큰 글씨로 멘트가 떠요.</span>
+      <span class="d">경희님이 보는 쪽.<br>큰 글씨·이미지가 떠요.</span>
     </button>
   </div>
   <div id="setup">
     <h3>🔗 신호 통로 연결 (최초 1회만)</h3>
-    <p>Firebase 실시간 DB 주소를 한 번만 붙여넣어 주세요. (예: https://릴리팩토리-cue-default-rtdb.firebaseio.com) 이 컴퓨터에 기억되어 다음부턴 안 물어봐요.</p>
+    <p>Firebase 실시간 DB 주소를 한 번만 붙여넣어 주세요. 이 컴퓨터에 기억되어 다음부턴 안 물어봐요.</p>
     <input id="dbinput" placeholder="https://....firebaseio.com" autocomplete="off">
     <button onclick="saveDb()">연결하고 시작</button>
     <div class="err" id="dberr"></div>
@@ -159,8 +143,9 @@
 
 <div id="ctrl">
   <div class="preview"><span class="lbl">지금 갤탭 화면 ↓</span>
-    <span class="txt empty" id="cpv">아직 보낸 멘트가 없어요</span></div>
-  <div class="editor"><textarea id="ta" placeholder="여기에 멘트 입력 → Enter로 전송 (Shift+Enter 줄바꿈)"></textarea></div>
+    <img id="cpvimg" alt="">
+    <span class="txt empty" id="cpv">아직 보낸 게 없어요</span></div>
+  <div class="editor"><textarea id="ta" placeholder="멘트 입력 → Enter로 전송 (Shift+Enter 줄바꿈) · 이미지는 복사 후 Ctrl+V"></textarea></div>
   <div class="quick">
     <div class="qh"><span>⚡ 빠른 멘트 (눌러서 바로 전송)</span><button onclick="toggleEdit()">편집</button></div>
     <div class="qgrid" id="qgrid"></div>
@@ -177,11 +162,14 @@
     <div class="sizectl">글씨<button onclick="bumpSize(-1)">−</button><span id="szlbl">8</span><button onclick="bumpSize(1)">+</button></div>
     <button class="act send" onclick="sendNow()">📨 전송</button>
     <button class="act blink" onclick="sendBlink()">⚡ 깜빡!</button>
+    <button class="act imgbtn" onclick="pickImage()">🖼 사진</button>
     <button class="act clear" onclick="sendClear()">지우기</button>
   </div>
 </div>
+<input type="file" id="fileinput" accept="image/*" style="display:none;">
 
 <div id="disp">
+  <img id="dimg" alt="">
   <div class="big empty" id="dbig">대기 중…</div>
   <div class="dmini"><span class="dot" id="ddot"></span><span id="dstat">연결 중</span></div>
   <div class="dsize"><button onclick="dSize(-1)">−</button><button onclick="dSize(1)">+</button></div>
@@ -196,11 +184,10 @@
 </div></div>
 
 <script>
-/* ===== 설정 ===== */
 function rid(){ return Math.random().toString(36).slice(2,8); }
 let topic="", dbUrl="", mode="", dispSize=8;
-let state={ seq:0, text:"", size:8, blink:0 };   // 컨트롤이 관리하는 현재 상태
-let lastSeq=-1, lastBlink=0;                      // 디스플레이가 본 마지막 값
+let state={ seq:0, text:"", img:"", size:8, blink:0 };
+let lastSeq=-1, lastBlink=0;
 
 (function init(){
   const m=new URLSearchParams(location.hash.slice(1));
@@ -209,44 +196,68 @@ let lastSeq=-1, lastBlink=0;                      // 디스플레이가 본 마�
   else if(m.get('c')){ topic=m.get('c'); startCtrl(); }
 })();
 
-function normDb(u){
-  u=(u||"").trim().replace(/\/+$/,"");
-  if(u && !/^https?:\/\//.test(u)) u="https://"+u;
-  return u;
-}
+function normDb(u){ u=(u||"").trim().replace(/\/+$/,""); if(u && !/^https?:\/\//.test(u)) u="https://"+u; return u; }
 function ensureTopic(){
   if(topic) return;
   try{ topic=localStorage.getItem('lf_topic')||""; }catch(e){}
   if(!topic){ topic="lf-cue-"+rid()+rid(); }
   try{ localStorage.setItem('lf_topic',topic); }catch(e){}
 }
-function pathUrl(){ return dbUrl+"/cue/"+encodeURIComponent(topic)+".json"; }
+function metaUrl(){ return dbUrl+"/cue/"+encodeURIComponent(topic)+"/m.json"; }
+function bodyUrl(){ return dbUrl+"/cue/"+encodeURIComponent(topic)+"/b.json"; }
 
-/* ===== Firebase 읽기/쓰기 ===== */
-async function fbWrite(){
-  try{
-    const r=await fetch(pathUrl(),{ method:"PUT", body:JSON.stringify(state) });
-    setDot('c', r.ok);
-  }catch(e){ setDot('c',false); }
+/* 쓰기: 가벼운 메타 / 무거운 본문 분리 */
+async function putMeta(){
+  try{ const r=await fetch(metaUrl(),{method:"PUT",body:JSON.stringify({seq:state.seq,size:state.size,blink:state.blink})}); setDot('c',r.ok); }
+  catch(e){ setDot('c',false); }
 }
-async function fbRead(){   // 디스플레이가 호출
-  try{
-    const r=await fetch(pathUrl());
-    if(!r.ok) throw 0;
-    const d=await r.json();
-    setDot('d',true);
-    return d;
-  }catch(e){ setDot('d',false); return undefined; }
+async function putBody(){
+  try{ await fetch(bodyUrl(),{method:"PUT",body:JSON.stringify({text:state.text,img:state.img})}); }
+  catch(e){ setDot('c',false); }
+}
+function pushContent(){ state.seq++; putBody(); putMeta(); paintPv(); }   // 글/이미지 바뀜
+function pushMeta(){ putMeta(); }                                         // 깜빡/크기만
+
+async function getJSON(u){
+  try{ const r=await fetch(u); if(!r.ok) throw 0; setDot('d',true); return await r.json(); }
+  catch(e){ setDot('d',false); return undefined; }
 }
 function setDot(who, ok){
   const dot=document.getElementById(who==='c'?'cdot':'ddot');
   const stat=document.getElementById(who==='c'?'cstat':'dstat');
   if(!dot) return;
-  if(ok){ dot.classList.add('on'); stat.textContent="연결됨"; }
-  else  { dot.classList.remove('on'); stat.textContent="재연결 중…"; }
+  if(ok){ dot.classList.add('on'); stat.textContent="연결됨"; } else { dot.classList.remove('on'); stat.textContent="재연결 중…"; }
 }
 
-/* ===== 컨트롤 ===== */
+/* 이미지 압축 */
+function compress(file, maxDim, q){
+  return new Promise((res,rej)=>{
+    const img=new Image(); const url=URL.createObjectURL(file);
+    img.onload=()=>{
+      let w=img.width, h=img.height;
+      const sc=Math.min(1, maxDim/Math.max(w,h));
+      w=Math.round(w*sc); h=Math.round(h*sc);
+      const c=document.createElement('canvas'); c.width=w; c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      URL.revokeObjectURL(url);
+      res(c.toDataURL('image/jpeg', q));
+    };
+    img.onerror=()=>{ URL.revokeObjectURL(url); rej(); };
+    img.src=url;
+  });
+}
+async function setImageFromFile(file){
+  if(!file || !file.type.startsWith('image/')) return;
+  try{
+    let data=await compress(file, 1000, 0.62);
+    // 너무 크면 한 단계 더 줄임
+    if(data.length>900000) data=await compress(file, 760, 0.55);
+    state.img=data; pushContent();
+  }catch(e){ alert("이미지를 불러오지 못했어요. 다른 사진으로 시도해 주세요."); }
+}
+function pickImage(){ document.getElementById('fileinput').click(); }
+
+/* 컨트롤 */
 const DEFAULT_QUICK=[
   "가격 한 번만 더 불러주세요","수량 강조해주세요","색상 안내해주세요",
   "마무리 멘트 들어갈게요","조금만 천천히~","카메라 한 번 봐주세요",
@@ -254,92 +265,87 @@ const DEFAULT_QUICK=[
 
 function startCtrl(){
   mode='c'; ensureTopic();
-  // DB 주소 확보
   if(!dbUrl){ try{ dbUrl=localStorage.getItem('lf_db')||""; }catch(e){} }
   if(!dbUrl){ document.getElementById('setup').classList.add('show'); document.getElementById('dbinput').focus(); return; }
   try{ localStorage.setItem('lf_db',dbUrl); }catch(e){}
-
   document.getElementById('pick').style.display='none';
   document.getElementById('ctrlbar').style.display='flex';
   document.getElementById('ctrl').classList.add('show');
   document.getElementById('cch').textContent="#"+topic;
   state.size=dispSize;
   renderQuick();
-  fbWrite();   // 초기 상태 1회 기록 → 연결 확인
+  putMeta(); putBody();
   const ta=document.getElementById('ta'); ta.focus();
   ta.addEventListener('keydown', e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendNow(); } });
   let t=null;
-  ta.addEventListener('input', ()=>{
-    if(!document.getElementById('live').checked) return;
-    clearTimeout(t);
-    t=setTimeout(()=>{ pushText(ta.value); }, 350);
+  ta.addEventListener('input', ()=>{ if(!document.getElementById('live').checked) return; clearTimeout(t); t=setTimeout(()=>{ state.text=ta.value; pushContent(); },350); });
+  // 붙여넣기로 이미지 받기
+  document.addEventListener('paste', e=>{
+    const items=(e.clipboardData||{}).items; if(!items) return;
+    for(const it of items){ if(it.type && it.type.startsWith('image/')){ const f=it.getAsFile(); if(f){ e.preventDefault(); setImageFromFile(f); return; } } }
   });
+  // 파일 선택으로도
+  document.getElementById('fileinput').addEventListener('change', e=>{ const f=e.target.files[0]; if(f) setImageFromFile(f); e.target.value=""; });
 }
 function saveDb(){
   const v=normDb(document.getElementById('dbinput').value);
-  if(!/firebaseio\.com|firebasedatabase\.app/.test(v)){
-    document.getElementById('dberr').textContent="Firebase DB 주소가 맞는지 확인해주세요 (…firebaseio.com).";
-    return;
-  }
+  if(!/firebaseio\.com|firebasedatabase\.app/.test(v)){ document.getElementById('dberr').textContent="Firebase DB 주소가 맞는지 확인해주세요 (…firebaseio.com)."; return; }
   dbUrl=v; try{ localStorage.setItem('lf_db',dbUrl); }catch(e){}
-  document.getElementById('setup').classList.remove('show');
-  startCtrl();
+  document.getElementById('setup').classList.remove('show'); startCtrl();
 }
-function pushText(txt){ state.text=txt; state.seq++; state.size=dispSize; fbWrite(); paintPv(); }
-function sendNow(){ pushText(document.getElementById('ta').value); }
-function sendBlink(){ state.blink++; fbWrite(); }
-function sendClear(){ document.getElementById('ta').value=""; pushText(""); document.getElementById('ta').focus(); }
+function sendNow(){ state.text=document.getElementById('ta').value; pushContent(); }
+function sendBlink(){ state.blink++; pushMeta(); }
+function sendClear(){ document.getElementById('ta').value=""; state.text=""; state.img=""; pushContent(); document.getElementById('ta').focus(); }
+function bumpSize(d){ dispSize=Math.max(3,Math.min(16,dispSize+d)); document.getElementById('szlbl').textContent=dispSize; state.size=dispSize; pushMeta(); }
 function paintPv(){
-  const pv=document.getElementById('cpv');
+  const pv=document.getElementById('cpv'), im=document.getElementById('cpvimg');
+  if(state.img){ im.src=state.img; im.style.display='block'; } else { im.style.display='none'; im.src=""; }
   if(state.text.trim()){ pv.textContent=state.text; pv.classList.remove('empty'); }
+  else if(state.img){ pv.textContent="(이미지)"; pv.classList.add('empty'); }
   else{ pv.textContent="(빈 화면)"; pv.classList.add('empty'); }
-}
-function bumpSize(d){
-  dispSize=Math.max(3,Math.min(16,dispSize+d));
-  document.getElementById('szlbl').textContent=dispSize;
-  state.size=dispSize; state.seq++; fbWrite();
 }
 function getQuick(){ try{ const s=localStorage.getItem('lf_quick'); if(s) return JSON.parse(s); }catch(e){} return DEFAULT_QUICK; }
 function renderQuick(){
   const g=document.getElementById('qgrid'); g.innerHTML="";
-  getQuick().forEach(txt=>{ const b=document.createElement('button'); b.className='qbtn'; b.textContent=txt;
-    b.onclick=()=>{ document.getElementById('ta').value=txt; pushText(txt); }; g.appendChild(b); });
+  getQuick().forEach(txt=>{ const b=document.createElement('button'); b.className='qbtn'; b.textContent=txt; b.onclick=()=>{ document.getElementById('ta').value=txt; state.text=txt; pushContent(); }; g.appendChild(b); });
 }
 function toggleEdit(){ const e=document.getElementById('qedit'); document.getElementById('qta').value=getQuick().join("\n"); e.classList.toggle('show'); }
-function saveQuick(){ const arr=document.getElementById('qta').value.split("\n").map(s=>s.trim()).filter(Boolean);
-  try{ localStorage.setItem('lf_quick',JSON.stringify(arr)); }catch(e){} renderQuick(); toggleEdit(); }
+function saveQuick(){ const arr=document.getElementById('qta').value.split("\n").map(s=>s.trim()).filter(Boolean); try{ localStorage.setItem('lf_quick',JSON.stringify(arr)); }catch(e){} renderQuick(); toggleEdit(); }
 
-/* ===== 디스플레이 (폴링) ===== */
+/* 디스플레이 (폴링: 메타 자주, 본문은 바뀔 때만) */
 let pollTimer=null;
 function startDisp(){
   mode='d';
   if(!topic || !dbUrl){ alert("연결 정보가 없어요. 컴퓨터의 'QR 연결'을 갤탭으로 다시 찍어주세요."); return; }
   document.getElementById('pick').style.display='none';
   document.getElementById('disp').classList.add('show');
-  keepAwake();
-  tick();
-  pollTimer=setInterval(tick,1500);
+  keepAwake(); tick(); pollTimer=setInterval(tick,1500);
   document.addEventListener('visibilitychange',()=>{
     if(document.visibilityState==='visible'){ tick(); if(!pollTimer) pollTimer=setInterval(tick,1500); }
     else { if(pollTimer){ clearInterval(pollTimer); pollTimer=null; } }
   });
 }
 async function tick(){
-  const d=await fbRead();
-  if(!d) return;
-  if(typeof d.size==='number'){ dispSize=d.size; setDispSize(); }
-  if(typeof d.seq==='number' && d.seq!==lastSeq){
-    lastSeq=d.seq; state.text=d.text||""; paintBig();
-  }
-  if(typeof d.blink==='number' && d.blink!==lastBlink){
-    if(lastBlink!==0 || d.blink>0) doFlash();
-    lastBlink=d.blink;
+  const m=await getJSON(metaUrl());
+  if(!m) return;
+  if(typeof m.size==='number'){ dispSize=m.size; setDispSize(); }
+  if(typeof m.blink==='number' && m.blink!==lastBlink){ if(lastBlink!==0 || m.blink>0) doFlash(); lastBlink=m.blink; }
+  if(typeof m.seq==='number' && m.seq!==lastSeq){
+    const b=await getJSON(bodyUrl());
+    if(b!==undefined && b!==null){ state.text=b.text||""; state.img=b.img||""; paintBig(); lastSeq=m.seq; }
   }
 }
 function paintBig(){
-  const b=document.getElementById('dbig');
-  if((state.text||"").trim()){ b.textContent=state.text; b.classList.remove('empty'); }
-  else{ b.textContent="대기 중…"; b.classList.add('empty'); }
+  const img=document.getElementById('dimg'), b=document.getElementById('dbig');
+  if(state.img){
+    img.src=state.img; img.style.display='block';
+    if((state.text||'').trim()){ b.textContent=state.text; b.classList.remove('empty'); b.classList.add('overlay'); }
+    else{ b.textContent=""; b.classList.add('empty'); b.classList.remove('overlay'); }
+  } else {
+    img.style.display='none'; img.src="";
+    if((state.text||'').trim()){ b.textContent=state.text; b.classList.remove('empty','overlay'); }
+    else{ b.textContent="대기 중…"; b.classList.add('empty'); b.classList.remove('overlay'); }
+  }
 }
 function setDispSize(){ document.getElementById('dbig').style.fontSize=dispSize+"vw"; }
 function dSize(d){ dispSize=Math.max(3,Math.min(16,dispSize+d)); setDispSize(); }
@@ -349,14 +355,9 @@ async function keepAwake(){
   document.addEventListener('visibilitychange', async()=>{ if(document.visibilityState==='visible'){ try{ await navigator.wakeLock.request('screen'); }catch(e){} } });
 }
 
-/* ===== QR / 링크 ===== */
+/* QR / 링크 */
 function dispLink(){ return location.origin+location.pathname+"#d="+topic+"&db="+encodeURIComponent(dbUrl); }
-function openModal(){
-  document.getElementById('modal').classList.add('show');
-  document.getElementById('link').value=dispLink();
-  const box=document.getElementById('qrbox'); box.innerHTML="";
-  new QRCode(box,{ text:dispLink(), width:220, height:220 });
-}
+function openModal(){ document.getElementById('modal').classList.add('show'); document.getElementById('link').value=dispLink(); const box=document.getElementById('qrbox'); box.innerHTML=""; new QRCode(box,{text:dispLink(),width:220,height:220}); }
 function closeModal(){ document.getElementById('modal').classList.remove('show'); }
 function copyLink(){ const i=document.getElementById('link'); i.select(); try{ navigator.clipboard.writeText(i.value); }catch(e){ document.execCommand('copy'); } }
 </script>
