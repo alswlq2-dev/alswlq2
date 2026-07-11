@@ -188,6 +188,11 @@ function rid(){ return Math.random().toString(36).slice(2,8); }
 let topic="", dbUrl="", mode="", dispSize=8;
 let state={ seq:0, text:"", img:"", size:8, blink:0 };
 let lastSeq=-1, lastBlink=0;
+let lastPvSeq=null, pvTimer=null;   // 서버 미러링용 (init보다 먼저 선언되어야 함)
+const DEFAULT_QUICK=[
+  "가격 한 번만 더 불러주세요","수량 강조해주세요","색상 안내해주세요",
+  "마무리 멘트 들어갈게요","조금만 천천히~","카메라 한 번 봐주세요",
+  "사이즈 안내해주세요","품절 임박이에요","주문 폭주 중!","링크 안내해주세요"];
 
 (function init(){
   const m=new URLSearchParams(location.hash.slice(1));
@@ -206,17 +211,50 @@ function ensureTopic(){
 function metaUrl(){ return dbUrl+"/cue/"+encodeURIComponent(topic)+"/m.json"; }
 function bodyUrl(){ return dbUrl+"/cue/"+encodeURIComponent(topic)+"/b.json"; }
 
-/* 쓰기: 가벼운 메타 / 무거운 본문 분리 */
-async function putMeta(){
-  try{ const r=await fetch(metaUrl(),{method:"PUT",body:JSON.stringify({seq:state.seq,size:state.size,blink:state.blink})}); setDot('c',r.ok); }
+/* 쓰기: 가벼운 메타 / 무거운 본문 분리
+   — 서버 값을 읽고 +1 하는 방식(PATCH)이라, 외부 프로그램(자동입력 등)이
+     보낸 깜빡/카드를 조작창이 덮어쓰지 않는다 */
+async function readMeta(){
+  try{ const r=await fetch(metaUrl()); if(r.ok){ setDot('c',true); return (await r.json())||{}; } }catch(e){}
+  setDot('c',false); return null;
+}
+async function patchMeta(fields){
+  try{ const r=await fetch(metaUrl(),{method:"PATCH",body:JSON.stringify(fields)}); setDot('c',r.ok); }
   catch(e){ setDot('c',false); }
 }
 async function putBody(){
   try{ await fetch(bodyUrl(),{method:"PUT",body:JSON.stringify({text:state.text,img:state.img})}); }
   catch(e){ setDot('c',false); }
 }
-function pushContent(){ state.seq++; putBody(); putMeta(); paintPv(); }   // 글/이미지 바뀜
-function pushMeta(){ putMeta(); }                                         // 깜빡/크기만
+async function pushContent(){                      // 글/이미지 바뀜
+  paintPv();
+  await putBody();
+  const sv=(await readMeta())||{};
+  state.seq=Math.max(state.seq, (typeof sv.seq==='number'?sv.seq:0))+1;
+  lastPvSeq=state.seq;
+  patchMeta({seq:state.seq, size:state.size});
+}
+async function pushBlink(){                        // 깜빡만
+  const sv=(await readMeta())||{};
+  state.blink=Math.max(state.blink, (typeof sv.blink==='number'?sv.blink:0))+1;
+  patchMeta({blink:state.blink});
+}
+function pushSize(){ patchMeta({size:state.size}); }
+
+/* 서버 상태 미러링 — 자동입력(파이썬)이 보낸 카드/깜빡도 PC 미리보기에 반영 */
+async function syncFromServer(first){
+  const sv=await readMeta(); if(!sv) return;
+  if(typeof sv.seq==='number' && sv.seq>state.seq) state.seq=sv.seq;
+  if(typeof sv.blink==='number' && sv.blink>state.blink) state.blink=sv.blink;
+  if(first && typeof sv.size==='number'){
+    dispSize=sv.size; state.size=sv.size;
+    const l=document.getElementById('szlbl'); if(l) l.textContent=sv.size;
+  }
+  if(state.seq!==lastPvSeq){
+    lastPvSeq=state.seq;
+    try{ const r=await fetch(bodyUrl()); if(r.ok){ const b=(await r.json())||{}; state.text=b.text||""; state.img=b.img||""; paintPv(); } }catch(e){}
+  }
+}
 
 async function getJSON(u){
   try{ const r=await fetch(u); if(!r.ok) throw 0; setDot('d',true); return await r.json(); }
@@ -258,11 +296,6 @@ async function setImageFromFile(file){
 function pickImage(){ document.getElementById('fileinput').click(); }
 
 /* 컨트롤 */
-const DEFAULT_QUICK=[
-  "가격 한 번만 더 불러주세요","수량 강조해주세요","색상 안내해주세요",
-  "마무리 멘트 들어갈게요","조금만 천천히~","카메라 한 번 봐주세요",
-  "사이즈 안내해주세요","품절 임박이에요","주문 폭주 중!","링크 안내해주세요"];
-
 function startCtrl(){
   mode='c'; ensureTopic();
   if(!dbUrl){ try{ dbUrl=localStorage.getItem('lf_db')||""; }catch(e){} }
@@ -274,7 +307,10 @@ function startCtrl(){
   document.getElementById('cch').textContent="#"+topic;
   state.size=dispSize;
   renderQuick();
-  putMeta(); putBody();
+  // 시작 시 서버 값을 읽어와 이어받는다 (예전처럼 0으로 리셋하지 않음)
+  syncFromServer(true);
+  if(pvTimer) clearInterval(pvTimer);
+  pvTimer=setInterval(()=>syncFromServer(false), 2000);
   const ta=document.getElementById('ta'); ta.focus();
   ta.addEventListener('keydown', e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendNow(); } });
   let t=null;
@@ -294,9 +330,9 @@ function saveDb(){
   document.getElementById('setup').classList.remove('show'); startCtrl();
 }
 function sendNow(){ state.text=document.getElementById('ta').value; pushContent(); }
-function sendBlink(){ state.blink++; pushMeta(); }
+function sendBlink(){ pushBlink(); }
 function sendClear(){ document.getElementById('ta').value=""; state.text=""; state.img=""; pushContent(); document.getElementById('ta').focus(); }
-function bumpSize(d){ dispSize=Math.max(3,Math.min(16,dispSize+d)); document.getElementById('szlbl').textContent=dispSize; state.size=dispSize; pushMeta(); }
+function bumpSize(d){ dispSize=Math.max(3,Math.min(16,dispSize+d)); document.getElementById('szlbl').textContent=dispSize; state.size=dispSize; pushSize(); }
 function paintPv(){
   const pv=document.getElementById('cpv'), im=document.getElementById('cpvimg');
   if(state.img){ im.src=state.img; im.style.display='block'; } else { im.style.display='none'; im.src=""; }
