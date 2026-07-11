@@ -361,5 +361,59 @@ function openModal(){ document.getElementById('modal').classList.add('show'); do
 function closeModal(){ document.getElementById('modal').classList.remove('show'); }
 function copyLink(){ const i=document.getElementById('link'); i.select(); try{ navigator.clipboard.writeText(i.value); }catch(e){ document.execCommand('copy'); } }
 </script>
+
+<!-- ===== F10 자동 실행: 상품등록 완료 → 깜빡 → 2초 후 지우기 ===== -->
+<script>
+(function(){
+  // ----- 설정값 (원하면 여기 숫자만 바꾸세요) -----
+  var QUICK_LABEL = "상품등록 완료"; // 누를 빠른 멘트 버튼 글자
+  var TRIGGER_KEY = "F10";           // 실행 키 (F9 등으로 바꿀 수 있음)
+  var BLINK_DELAY = 200;             // 상품등록완료 → 깜빡 사이(ms)
+  var CLEAR_DELAY = 6000;            // 깜빡 → 지우기 사이(ms, 6초)
+
+  function findQuickBtn(){
+    var btns = document.querySelectorAll(".qbtn");
+    for(var i=0;i<btns.length;i++){ if((btns[i].textContent||"").trim() === QUICK_LABEL) return btns[i]; }
+    for(var j=0;j<btns.length;j++){ if((btns[j].textContent||"").indexOf(QUICK_LABEL) >= 0) return btns[j]; }
+    return null;
+  }
+  function toast(msg){
+    var t = document.getElementById("__f10toast");
+    if(!t){ t = document.createElement("div"); t.id="__f10toast";
+      t.style.cssText="position:fixed;left:50%;top:16px;transform:translateX(-50%);background:#222;color:#fff;padding:9px 16px;border-radius:9px;font-size:15px;font-weight:700;z-index:99999;opacity:.96;pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,.3)";
+      document.body.appendChild(t); }
+    t.textContent = msg; t.style.display="block";
+    clearTimeout(t.__h); t.__h = setTimeout(function(){ t.style.display="none"; }, 1600);
+  }
+  function runSequence(){
+    var q = findQuickBtn();
+    var blink = document.querySelector(".act.blink");
+    var clear = document.querySelector(".act.clear");
+    if(!blink || !clear){ toast("컴퓨터(입력) 화면에서만 작동해요"); return; }
+    if(!q){ toast("'" + QUICK_LABEL + "' 빠른 멘트 버튼을 못 찾았어요"); return; }
+    q.click();
+    toast("① 상품등록 완료 전송");
+    setTimeout(function(){ blink.click(); toast("② 깜빡!"); }, BLINK_DELAY);
+    setTimeout(function(){ clear.click(); toast("③ 지우기 (화면 비움)"); }, BLINK_DELAY + CLEAR_DELAY);
+  }
+  document.addEventListener("keydown", function(e){
+    if(e.key === TRIGGER_KEY || e.keyCode === 121){
+      e.preventDefault(); e.stopPropagation();
+      runSequence();
+    }
+  }, true);
+
+  // ----- '바코드' 들어간 버튼을 누르면 깜빡!도 자동 실행 -----
+  document.addEventListener("click", function(e){
+    var b = e.target && e.target.closest ? e.target.closest("button") : null;
+    if(!b) return;
+    if((b.textContent||"").indexOf("바코드") < 0) return;       // '바코드' 안 든 버튼은 무시
+    if(b.classList && b.classList.contains("blink")) return;    // 깜빡 버튼 자신은 제외
+    var bl = document.querySelector(".act.blink");
+    if(bl){ setTimeout(function(){ bl.click(); }, 150); }
+  }, false);
+})();
+</script>
 </body>
 </html>
+
