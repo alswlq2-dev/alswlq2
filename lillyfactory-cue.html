@@ -355,21 +355,34 @@ function startDisp(){
   if(!topic || !dbUrl){ alert("연결 정보가 없어요. 컴퓨터의 'QR 연결'을 갤탭으로 다시 찍어주세요."); return; }
   document.getElementById('pick').style.display='none';
   document.getElementById('disp').classList.add('show');
-  keepAwake(); tick(); pollTimer=setInterval(tick,1500);
+  keepAwake(); tick();
+  // 탭이 다른 창에 가려지거나 백그라운드여도 폴링 유지 — Web Worker 타이머는
+  // 페이지 가시성과 무관하게 계속 돈다. (기존: 가려지면 폴링 중단 →
+  // PC에서 카드뷰 창이 덮여 있으면 카드가 영영 안 떠서 F8/F10이 안 되는 걸로 보였음)
+  // window.* 전역만 사용 — 이 함수는 스크립트 상단 init에서 불리므로
+  // 아래쪽 let 변수(pollTimer 등)를 건드리면 TDZ 에러로 폴링이 조용히 죽는다.
+  try{
+    const wsrc=URL.createObjectURL(new Blob(["setInterval(function(){postMessage(1)},1500)"],{type:'text/javascript'}));
+    const w=new Worker(wsrc); w.onmessage=function(){ tick(); };
+    window.__cuePollWorker=w;  // 전역 참조 유지 (GC로 워커 죽는 것 방지)
+  }catch(e){ window.__cuePollTimer=setInterval(tick,1500); }  // 워커 불가 환경 폴백
   document.addEventListener('visibilitychange',()=>{
-    if(document.visibilityState==='visible'){ tick(); if(!pollTimer) pollTimer=setInterval(tick,1500); }
-    else { if(pollTimer){ clearInterval(pollTimer); pollTimer=null; } }
+    if(document.visibilityState==='visible') tick();  // 다시 보이면 즉시 한 번 갱신
   });
 }
 async function tick(){
-  const m=await getJSON(metaUrl());
-  if(!m) return;
-  if(typeof m.size==='number'){ dispSize=m.size; setDispSize(); }
-  if(typeof m.blink==='number' && m.blink!==lastBlink){ if(lastBlink!==0 || m.blink>0) doFlash(); lastBlink=m.blink; }
-  if(typeof m.seq==='number' && m.seq!==lastSeq){
-    const b=await getJSON(bodyUrl());
-    if(b!==undefined && b!==null){ state.text=b.text||""; state.img=b.img||""; paintBig(); lastSeq=m.seq; }
-  }
+  if(window.__cueTickBusy) return;  // 네트워크 지연 시 겹침 방지
+  window.__cueTickBusy=true;
+  try{
+    const m=await getJSON(metaUrl());
+    if(!m) return;
+    if(typeof m.size==='number'){ dispSize=m.size; setDispSize(); }
+    if(typeof m.blink==='number' && m.blink!==lastBlink){ if(lastBlink!==0 || m.blink>0) doFlash(); lastBlink=m.blink; }
+    if(typeof m.seq==='number' && m.seq!==lastSeq){
+      const b=await getJSON(bodyUrl());
+      if(b!==undefined && b!==null){ state.text=b.text||""; state.img=b.img||""; paintBig(); lastSeq=m.seq; }
+    }
+  } finally { window.__cueTickBusy=false; }
 }
 function paintBig(){
   const img=document.getElementById('dimg'), b=document.getElementById('dbig');
