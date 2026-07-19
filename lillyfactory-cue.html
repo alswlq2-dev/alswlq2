@@ -204,6 +204,7 @@ const DEFAULT_QUICK=[
   const m=new URLSearchParams(location.hash.slice(1));
   if(m.get('db')) dbUrl=decodeURIComponent(m.get('db'));
   if(m.get('yt')) window.__cueYt=ytId(m.get('yt'));  // 링크로도 지정 가능 (평소엔 조작창 👍 버튼 → 메타로 내려옴)
+  if(m.get('ytkey')) window.__cueYtKey=m.get('ytkey');
   if(m.get('d')){ topic=m.get('d'); startDisp(); }
   else if(m.get('c')){ topic=m.get('c'); startCtrl(); }
 })();
@@ -391,6 +392,7 @@ async function tick(){
       if(b!==undefined && b!==null){ state.text=b.text||""; state.img=b.img||""; paintBig(); lastSeq=m.seq; }
     }
     if(typeof m.yt==='string'){ const v=ytId(m.yt); if(v!==window.__cueYt){ window.__cueYt=v; window.__cueYtLast=0; window.__cueYtN=null; paintLikes(); } }
+    if(typeof m.ytkey==='string' && m.ytkey!==window.__cueYtKey){ window.__cueYtKey=m.ytkey; window.__cueYtLast=0; }
     maybeFetchLikes();
   } finally { window.__cueTickBusy=false; }
 }
@@ -426,8 +428,14 @@ async function maybeFetchLikes(){
   if(window.__cueYtBusy || now-(window.__cueYtLast||0)<30000) return;  // 30초 간격 (실패해도 30초 뒤 재시도)
   window.__cueYtBusy=true; window.__cueYtLast=now;
   try{
-    const r=await fetch("https://returnyoutubedislikeapi.com/votes?videoId="+id);
-    if(r.ok){ const j=await r.json(); if(j && typeof j.likes==='number') window.__cueYtN=j.likes; }
+    const key=window.__cueYtKey||"";
+    if(key){  // 공식 유튜브 API — 실시간 (키는 메타 ytkey에 1회 저장, referrer 제한 걸어둘 것)
+      const r=await fetch("https://www.googleapis.com/youtube/v3/videos?part=statistics&id="+id+"&key="+encodeURIComponent(key));
+      if(r.ok){ const j=await r.json(); const n=parseInt((((j.items||[])[0]||{}).statistics||{}).likeCount,10); if(!isNaN(n)) window.__cueYtN=n; }
+    } else {  // 키 없이 되는 공개 API — 라이브 중엔 수치가 몇십 분 늦을 수 있음
+      const r=await fetch("https://returnyoutubedislikeapi.com/votes?videoId="+id);
+      if(r.ok){ const j=await r.json(); if(j && typeof j.likes==='number') window.__cueYtN=j.likes; }
+    }
   }catch(e){} finally{ window.__cueYtBusy=false; paintLikes(); }
 }
 function paintLikes(){
