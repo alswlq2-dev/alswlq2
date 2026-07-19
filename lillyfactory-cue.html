@@ -95,6 +95,10 @@
   .dsize{position:fixed; bottom:8px; left:10px; display:flex; gap:6px; z-index:5; opacity:.25; transition:.2s;}
   .dsize:hover{opacity:1;}
   .dsize button{width:38px; height:38px; border-radius:10px; background:#141418; border:1px solid #26262e; color:#888; font-size:18px; font-weight:700;}
+  .ytlike{position:fixed; top:10px; right:12px; z-index:6; display:none; align-items:center; gap:.3em;
+    background:rgba(10,10,12,.6); border:1px solid #26262e; border-radius:.45em; padding:.15em .5em .15em .4em;
+    font-size:5vw; font-weight:800; color:#fff; font-variant-numeric:tabular-nums; pointer-events:none;}
+  .ytlike .yth{font-size:.8em;}
 
   #modal{position:fixed; inset:0; background:rgba(0,0,0,.8); display:none; align-items:center; justify-content:center; z-index:100; padding:20px;}
   #modal.show{display:flex;}
@@ -138,6 +142,7 @@
   <span class="ch" id="cch"></span><span class="spacer"></span>
   <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--dim);cursor:pointer;">
     <input type="checkbox" id="live" style="width:16px;height:16px;">실시간 전송</label>
+  <button class="tbtn" onclick="setYt()">👍 유튜브</button>
   <button class="tbtn" onclick="openModal()">📱 갤탭 연결</button>
 </div>
 
@@ -173,6 +178,7 @@
   <div class="big empty" id="dbig">대기 중…</div>
   <div class="dmini"><span class="dot" id="ddot"></span><span id="dstat">연결 중</span></div>
   <div class="dsize"><button onclick="dSize(-1)">−</button><button onclick="dSize(1)">+</button></div>
+  <div class="ytlike" id="ytlike"><span class="yth">👍</span><span id="ytliken">…</span></div>
 </div>
 
 <div id="modal"><div class="mcard">
@@ -197,6 +203,7 @@ const DEFAULT_QUICK=[
 (function init(){
   const m=new URLSearchParams(location.hash.slice(1));
   if(m.get('db')) dbUrl=decodeURIComponent(m.get('db'));
+  if(m.get('yt')) window.__cueYt=ytId(m.get('yt'));  // 링크로도 지정 가능 (평소엔 조작창 👍 버튼 → 메타로 내려옴)
   if(m.get('d')){ topic=m.get('d'); startDisp(); }
   else if(m.get('c')){ topic=m.get('c'); startCtrl(); }
 })();
@@ -382,6 +389,8 @@ async function tick(){
       const b=await getJSON(bodyUrl());
       if(b!==undefined && b!==null){ state.text=b.text||""; state.img=b.img||""; paintBig(); lastSeq=m.seq; }
     }
+    if(typeof m.yt==='string'){ const v=ytId(m.yt); if(v!==window.__cueYt){ window.__cueYt=v; window.__cueYtLast=0; window.__cueYtN=null; paintLikes(); } }
+    maybeFetchLikes();
   } finally { window.__cueTickBusy=false; }
 }
 function paintBig(){
@@ -399,6 +408,43 @@ function paintBig(){
 function setDispSize(){ document.getElementById('dbig').style.fontSize=dispSize+"vw"; }
 function dSize(d){ dispSize=Math.max(3,Math.min(16,dispSize+d)); setDispSize(); }
 function doFlash(){ const d=document.getElementById('disp'); d.classList.remove('flash'); void d.offsetWidth; d.classList.add('flash'); setTimeout(()=>d.classList.remove('flash'),5200); }
+
+/* 유튜브 실시간 좋아요 — 갤탭 화면 오른쪽 위 배지
+   영상 지정: 조작창 👍 버튼 → 메타(yt)로 전달 (링크 #yt= 로도 가능)
+   window.__cueYt* 전역만 사용 — startDisp/tick 계열은 아래쪽 let 참조 금지(TDZ) */
+function ytId(s){
+  s=(s||"").trim();
+  const m=s.match(/(?:v=|youtu\.be\/|\/live\/|\/shorts\/|\/embed\/)([\w-]{11})/);
+  if(m) return m[1];
+  return /^[\w-]{11}$/.test(s) ? s : "";
+}
+async function maybeFetchLikes(){
+  const id=window.__cueYt;
+  if(!id){ paintLikes(); return; }
+  const now=Date.now();
+  if(window.__cueYtBusy || now-(window.__cueYtLast||0)<30000) return;  // 30초 간격 (실패해도 30초 뒤 재시도)
+  window.__cueYtBusy=true; window.__cueYtLast=now;
+  try{
+    const r=await fetch("https://returnyoutubedislikeapi.com/votes?videoId="+id);
+    if(r.ok){ const j=await r.json(); if(j && typeof j.likes==='number') window.__cueYtN=j.likes; }
+  }catch(e){} finally{ window.__cueYtBusy=false; paintLikes(); }
+}
+function paintLikes(){
+  const el=document.getElementById('ytlike'), n=document.getElementById('ytliken');
+  if(!el) return;
+  if(!window.__cueYt){ el.style.display='none'; return; }
+  el.style.display='flex';
+  n.textContent=(typeof window.__cueYtN==='number') ? window.__cueYtN.toLocaleString('ko-KR') : "…";
+}
+async function setYt(){
+  const sv=(await readMeta())||{};
+  const v=window.prompt("유튜브 방송 링크(또는 영상ID)를 붙여넣으세요.\n갤탭 화면 오른쪽 위에 실시간 좋아요 수가 떠요.\n(비우고 확인 = 표시 끄기)", (typeof sv.yt==='string')?sv.yt:"");
+  if(v===null) return;
+  const id=ytId(v);
+  if(v.trim() && !id){ alert("유튜브 주소를 못 알아봤어요. 링크를 다시 확인해주세요."); return; }
+  patchMeta({yt:id});
+  alert(id ? "설정 완료! 갤탭에 좋아요 수가 떠요. (영상 "+id+")" : "좋아요 표시를 껐어요.");
+}
 async function keepAwake(){
   try{ if('wakeLock' in navigator) await navigator.wakeLock.request('screen'); }catch(e){}
   document.addEventListener('visibilitychange', async()=>{ if(document.visibilityState==='visible'){ try{ await navigator.wakeLock.request('screen'); }catch(e){} } });
