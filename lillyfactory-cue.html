@@ -381,6 +381,7 @@ async function tick(){
   if(window.__cueTickBusy) return;  // 네트워크 지연 시 겹침 방지
   window.__cueTickBusy=true;
   try{
+    maybeFetchLikes();  // 좋아요 갱신은 메타 유무·연결 상태와 무관하게 돈다
     const m=await getJSON(metaUrl());
     if(!m) return;
     if(typeof m.size==='number'){ dispSize=m.size; setDispSize(); }
