@@ -393,6 +393,7 @@ async function tick(){
     }
     if(typeof m.yt==='string'){ const v=ytId(m.yt); if(v!==window.__cueYt){ window.__cueYt=v; window.__cueYtLast=0; window.__cueYtN=null; paintLikes(); } }
     if(typeof m.ytkey==='string' && m.ytkey!==window.__cueYtKey){ window.__cueYtKey=m.ytkey; window.__cueYtLast=0; }
+    if(typeof m.ytn==='number' && typeof m.ytnt==='number') window.__cueYtRelay={n:m.ytn,t:m.ytnt};  // PC 릴레이가 쏘는 진짜 실시간 값
     maybeFetchLikes();
   } finally { window.__cueTickBusy=false; }
 }
@@ -424,6 +425,9 @@ function ytId(s){
 async function maybeFetchLikes(){
   const id=window.__cueYt;
   if(!id){ paintLikes(); return; }
+  // PC 릴레이(유튜브좋아요릴레이.py) 값이 3분 내 신선하면 그걸 그대로 표시 — 진짜 실시간
+  const rl=window.__cueYtRelay;
+  if(rl && Date.now()-rl.t<180000){ if(window.__cueYtN!==rl.n){ window.__cueYtN=rl.n; paintLikes(); } return; }
   const now=Date.now();
   if(window.__cueYtBusy || now-(window.__cueYtLast||0)<30000) return;  // 30초 간격 (실패해도 30초 뒤 재시도)
   window.__cueYtBusy=true; window.__cueYtLast=now;
