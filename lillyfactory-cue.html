@@ -175,6 +175,7 @@
   <span class="ch" id="cch"></span><span class="spacer"></span>
   <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--dim);cursor:pointer;">
     <input type="checkbox" id="live" style="width:16px;height:16px;">실시간 전송</label>
+  <button class="tbtn" onclick="toggleCart()">🛒 장바구니</button>
   <button class="tbtn" onclick="setYt()">👍 유튜브</button>
   <button class="tbtn" onclick="openModal()">📱 갤탭 연결</button>
 </div>
@@ -219,6 +220,7 @@
   <div class="carthead">
     <span class="t">🛒 장바구니 TOP</span>
     <span class="sub" id="cartsub">불러오는 중…</span>
+    <button class="x" id="cartremote" onclick="remoteCartToggle()" style="display:none; border-color:#5a5a1e; color:var(--accent2);">📺 갤탭에 띄우기</button>
     <button class="x" onclick="toggleCart()">✕ 닫기</button>
   </div>
   <div id="cartlist"><div id="cartempty">아직 데이터가 없어요.<br>PC 자동입력 프로그램이 켜져 있으면 몇 분 안에 채워져요.</div></div>
@@ -300,6 +302,10 @@ async function syncFromServer(first){
   if(first && typeof sv.size==='number'){
     dispSize=sv.size; state.size=sv.size;
     const l=document.getElementById('szlbl'); if(l) l.textContent=sv.size;
+  }
+  // 갤탭 장바구니 원격 상태를 조작창 버튼 라벨에 반영 (2초 폴링에 얹힘)
+  if(typeof sv.cartshow==='number' && sv.cartshow!==window.__cueCartRemote){
+    window.__cueCartRemote=sv.cartshow; paintCartRemote();
   }
   if(state.seq!==lastPvSeq){
     lastPvSeq=state.seq;
@@ -429,7 +435,24 @@ async function tick(){
     const m=await getJSON(metaUrl());
     if(!m) return;
     if(typeof m.size==='number'){ dispSize=m.size; setDispSize(); }
-    if(typeof m.blink==='number' && m.blink!==lastBlink){ if(lastBlink!==0 || m.blink>0) doFlash(); lastBlink=m.blink; }
+    if(typeof m.blink==='number' && m.blink!==lastBlink){
+      if(lastBlink!==0 || m.blink>0){
+        doFlash();
+        // 깜빡 = "여기 봐" 신호 → 장바구니 목록이 카드를 가리지 않게 자동으로 내림
+        var cp=document.getElementById('cartpanel');
+        if(cp && cp.classList.contains('show')) setCartPanel(false);
+      }
+      lastBlink=m.blink;
+    }
+    // PC 조작창의 [📺 갤탭에 띄우기/내리기] 원격 신호 (에지 트리거 — 값이 바뀔 때만)
+    // 절대값 = 신호를 보낸 시각. 페이지 첫 로드 때는 30분 내 신선한 '띄우기'만 반영
+    // (몇 시간 전 잔재 신호로 다음 방송에서 갑자기 목록이 뜨는 것 방지)
+    if(typeof m.cartshow==='number' && m.cartshow!==window.__cueCartShowSeen){
+      var cartFirst=(window.__cueCartShowSeen===undefined);
+      window.__cueCartShowSeen=m.cartshow;
+      if(!cartFirst) setCartPanel(m.cartshow>0);
+      else if(m.cartshow>0 && Date.now()-m.cartshow<1800000) setCartPanel(true);
+    }
     if(typeof m.seq==='number' && m.seq!==lastSeq){
       const b=await getJSON(bodyUrl());
       if(b!==undefined && b!==null){ state.text=b.text||""; state.img=b.img||""; paintBig(); lastSeq=m.seq; }
@@ -509,15 +532,33 @@ async function keepAwake(){
 /* 🛒 장바구니 TOP — PC 자동입력(price_history)이 cart 노드로 밀어넣는 byv 집계
    window.* 전역 + function 선언만 사용 (아래 let 참조 금지: TDZ 함정) */
 function cartUrl(){ return dbUrl+"/cue/"+encodeURIComponent(topic)+"/cart.json"; }
-function toggleCart(){
+function setCartPanel(show){
   var p=document.getElementById('cartpanel');
-  var show=!p.classList.contains('show');
-  p.classList.toggle('show', show);
+  p.classList.toggle('show', !!show);
   if(window.__cueCartTimer){ clearInterval(window.__cueCartTimer); window.__cueCartTimer=null; }
   if(show){
     fetchCart();
     window.__cueCartTimer=setInterval(fetchCart, 10000);  // 열려있는 동안만 10초 갱신
+    if(mode==='c'){ var rb=document.getElementById('cartremote'); if(rb){ rb.style.display='block'; } paintCartRemote(); }
   }
+}
+function toggleCart(){
+  var p=document.getElementById('cartpanel');
+  setCartPanel(!p.classList.contains('show'));
+}
+/* PC 조작창에서 갤탭 화면에 원격으로 띄우기/내리기
+   meta.cartshow: 양수=띄워라 / 음수·0=내려라, 절대값을 키워가며 변화를 알림(에지 트리거) */
+function paintCartRemote(){
+  var rb=document.getElementById('cartremote'); if(!rb) return;
+  rb.textContent = (window.__cueCartRemote||0)>0 ? "📺 갤탭에서 내리기" : "📺 갤탭에 띄우기";
+}
+async function remoteCartToggle(){
+  var sv=(await readMeta())||{};
+  var cur=(typeof sv.cartshow==='number')?sv.cartshow:0;
+  var next=(cur>0?-1:1)*Date.now();   // 절대값=신호 시각 → 갤탭이 신선도 판단 가능
+  window.__cueCartRemote=next;
+  patchMeta({cartshow:next});
+  paintCartRemote();
 }
 async function fetchCart(){
   try{
