@@ -48,7 +48,24 @@
   .tbtn:hover{border-color:var(--dim);}
 
   #ctrl{display:none; height:100%; padding:60px 18px 18px; max-width:1100px; margin:0 auto; gap:14px;}
-  #ctrl.show{display:grid; grid-template-rows:auto auto 1fr auto;}
+  #ctrl.show{display:grid; grid-template-rows:auto auto auto 1fr auto;}
+  /* 🤖 방송 도우미 박스 — 자동추천(항상) + 클로드 코멘트(루프 켰을 때) */
+  #aibox{display:none; background:#101014; border:1px solid #2a2a33; border-radius:14px;
+    padding:10px 14px; max-height:200px; overflow-y:auto;}
+  #aibox.show{display:block;}
+  #aibox .aihd{display:flex; align-items:center; gap:8px; font-size:12px; color:var(--dim);
+    letter-spacing:.05em; margin-bottom:6px;}
+  #aitxt{font-size:14px; line-height:1.55; white-space:pre-wrap; word-break:keep-all;
+    color:#d9d9e2; margin-bottom:8px; display:none;}
+  .airow{display:flex; gap:8px; flex-wrap:wrap;}
+  .aichip{display:flex; align-items:center; gap:8px; background:#17171d; border:1px solid #2a2a33;
+    border-radius:11px; padding:7px 10px; cursor:pointer; transition:.12s; max-width:100%;}
+  .aichip:hover{border-color:var(--accent2);}
+  .aichip img{width:34px; height:34px; object-fit:cover; border-radius:7px; flex:none; background:#0a0a0c;}
+  .aichip .an{font-size:13.5px; font-weight:800; white-space:nowrap;}
+  .aichip .aw{font-size:12px; color:var(--dim); white-space:nowrap; overflow:hidden;
+    text-overflow:ellipsis; max-width:340px;}
+  .aichip .go{flex:none; font-size:12px; font-weight:800; color:var(--accent2);}
   .preview{background:#000; border:2px solid var(--line); border-radius:16px; min-height:120px; display:flex; align-items:center; justify-content:center; gap:14px; padding:18px 22px; text-align:center; position:relative; overflow:hidden;}
   .preview .lbl{position:absolute; top:8px; left:12px; font-size:11px; color:var(--dim); letter-spacing:.08em;}
   #cpvimg{display:none; max-height:84px; max-width:140px; object-fit:contain; border-radius:6px; flex:none;}
@@ -203,6 +220,11 @@
 </div>
 
 <div id="ctrl">
+  <div id="aibox">
+    <div class="aihd"><span id="aihdt">🤖 방송 도우미</span><span class="spacer" style="flex:1;"></span><span id="aiage"></span></div>
+    <div id="aitxt"></div>
+    <div class="airow" id="airow"></div>
+  </div>
   <div class="preview"><span class="lbl">지금 갤탭 화면 ↓</span>
     <img id="cpvimg" alt="">
     <span class="txt empty" id="cpv">아직 보낸 게 없어요</span></div>
@@ -338,6 +360,9 @@ async function syncFromServer(first){
     var fsel=(sv.feat.v>0)?String(sv.feat.id||''):null;
     if(fsel!==window.__cueFeatSel){ window.__cueFeatSel=fsel; paintCartSel(); }
   }
+  // 🤖 도우미 박스 갱신 (10초에 한 번 — 2초 폴링 5회마다)
+  window.__cueAiTick=(window.__cueAiTick||0)+1;
+  if(first || window.__cueAiTick%5===0) fetchAssist();
   if(state.seq!==lastPvSeq){
     lastPvSeq=state.seq;
     try{ const r=await fetch(bodyUrl()); if(r.ok){ const b=(await r.json())||{}; state.text=b.text||""; state.img=b.img||""; paintPv(); } }catch(e){}
@@ -594,7 +619,9 @@ function sendFeat(it){
                    cart:it.cart||0, paid:it.paid||0,
                    price:(typeof it.price==='number'?it.price:0)}});
   // 전송 횟수 +1 — 방송별 Firebase 기록 + 행 배지 즉시 갱신 (스크롤 유지 위해 재렌더 안 함)
-  var lb=(window.__cueCartData&&window.__cueCartData.labang)||"";
+  var lb=(window.__cueCartData&&window.__cueCartData.labang)
+       ||(window.__cueRec&&window.__cueRec.labang)
+       ||(window.__cueAi&&window.__cueAi.labang)||"";
   if(lb && id){
     if(!window.__cueSent || window.__cueSentLb!==lb){ window.__cueSent={}; window.__cueSentLb=lb; }
     window.__cueSent[id]=(window.__cueSent[id]||0)+1;
@@ -621,6 +648,46 @@ function paintCartSel(){
     rows[i].classList.toggle('sel', !!window.__cueFeatSel && rows[i].dataset.id===window.__cueFeatSel);
   }
 }
+/* 🤖 방송 도우미 박스 — rec.json(규칙 자동추천, 프로그램이 60초 감지) +
+   ai.json(클로드 실시간 코멘트, 루프 켰을 때만). 10분 지난 데이터는 자동 숨김 */
+async function fetchAssist(){
+  try{ var r1=await fetch(dbUrl+"/cue/"+encodeURIComponent(topic)+"/rec.json");
+       window.__cueRec = r1.ok ? ((await r1.json())||null) : null; }catch(e){}
+  try{ var r2=await fetch(dbUrl+"/cue/"+encodeURIComponent(topic)+"/ai.json");
+       window.__cueAi = r2.ok ? ((await r2.json())||null) : null; }catch(e){}
+  paintAssist();
+}
+function paintAssist(){
+  var box=document.getElementById('aibox'); if(!box || mode!=='c') return;
+  var now=Date.now(), FRESH=600000;
+  var ai=window.__cueAi, rec=window.__cueRec;
+  var aiFresh=!!(ai&&typeof ai.at==='number'&&(now-ai.at)<FRESH);
+  var recFresh=!!(rec&&typeof rec.at==='number'&&(now-rec.at)<FRESH);
+  if(!aiFresh&&!recFresh){ box.classList.remove('show'); return; }
+  box.classList.add('show');
+  var src=aiFresh?ai:rec;
+  document.getElementById('aihdt').textContent=aiFresh?'🤖 클로드 방송 도우미':'⚡ 자동 추천';
+  var m=Math.round((now-src.at)/60000);
+  document.getElementById('aiage').textContent=(m<=0?'방금':m+'분 전')+' 갱신';
+  var t=document.getElementById('aitxt');
+  if(aiFresh&&(ai.txt||'').trim()){ t.textContent=ai.txt; t.style.display='block'; }
+  else{ t.style.display='none'; }
+  var row=document.getElementById('airow'); row.innerHTML='';
+  var items=(aiFresh?(ai.recs||[]):[]).concat(recFresh?(rec.items||[]):[]);
+  var seen={};
+  items.forEach(function(it){
+    var id=String(it.id||''); if(!id||seen[id]) return; seen[id]=1;
+    var chip=document.createElement('div'); chip.className='aichip';
+    chip.onclick=function(){ sendFeat(it); };
+    if(it.ment) chip.title=it.ment;   // 클로드 멘트는 툴팁으로
+    if(it.img){ var im=document.createElement('img'); im.referrerPolicy='no-referrer'; im.src=it.img; chip.appendChild(im); }
+    var an=document.createElement('span'); an.className='an'; an.textContent=it.n||''; chip.appendChild(an);
+    if(it.why){ var aw=document.createElement('span'); aw.className='aw'; aw.textContent=it.why; chip.appendChild(aw); }
+    var go=document.createElement('span'); go.className='go'; go.textContent='📺 보내기'; chip.appendChild(go);
+    row.appendChild(chip);
+  });
+}
+
 function showFeat(f){
   var img=document.getElementById('featimg');
   if(f.img){ img.src=f.img; img.style.display='block'; } else { img.style.display='none'; img.src=''; }
