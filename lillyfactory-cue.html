@@ -115,6 +115,9 @@
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .carthead .x{background:var(--panel); border:1px solid var(--line); color:var(--ink);
     border-radius:10px; padding:9px 16px; font-size:15px; font-weight:700; flex:none;}
+  .cttab{background:var(--panel); border:1px solid var(--line); color:var(--dim);
+    border-radius:10px; padding:9px 14px; font-size:15px; font-weight:800; flex:none;}
+  .cttab.on{background:#241f0c; border-color:var(--accent2); color:var(--accent2);}
   #cartlist{flex:1; overflow-y:auto; padding-top:8px;}
   .cartrow{display:flex; align-items:center; gap:14px; padding:9px 4px;
     border-bottom:1px solid #17171d;}
@@ -235,7 +238,9 @@
 
 <div id="cartpanel">
   <div class="carthead">
-    <span class="t">🛒 장바구니 TOP</span>
+    <span class="t">🔥 TOP 100</span>
+    <button class="cttab on" id="cttab-paid" onclick="setCartTab('paid')">💳 결제</button>
+    <button class="cttab" id="cttab-cart" onclick="setCartTab('cart')">🛒 장바구니</button>
     <span class="sub" id="cartsub">불러오는 중…</span>
     <button class="x" id="featclear" onclick="featClear()" style="display:none; border-color:#5a5a1e; color:var(--accent2);">📺 갤탭에서 내리기</button>
     <button class="x" onclick="toggleCart()">✕ 닫기</button>
@@ -607,12 +612,28 @@ async function fetchCart(){
   try{
     var r=await fetch(cartUrl());
     if(!r.ok) return;
-    renderCart((await r.json())||{});
+    window.__cueCartData=(await r.json())||{};
+    renderCart(window.__cueCartData);
   }catch(e){}
+}
+/* 💳 결제 TOP / 🛒 장바구니 TOP 탭 — 같은 데이터를 다르게 정렬해 보여줌 */
+function setCartTab(t){
+  window.__cueCartTab=t;
+  var bp=document.getElementById('cttab-paid'), bc=document.getElementById('cttab-cart');
+  if(bp) bp.classList.toggle('on', t==='paid');
+  if(bc) bc.classList.toggle('on', t!=='paid');
+  if(window.__cueCartData) renderCart(window.__cueCartData);
 }
 function renderCart(d){
   var sub=document.getElementById('cartsub'), list=document.getElementById('cartlist');
-  var items=(d&&d.items)||[];
+  var all=(d&&d.items)||[];
+  var tab=window.__cueCartTab||'paid';
+  var items = (tab==='cart')
+    ? all.filter(function(x){return (x.cart||0)>0;})
+         .sort(function(a,b){return (b.cart||0)-(a.cart||0) || (b.paid||0)-(a.paid||0);})
+    : all.filter(function(x){return (x.paid||0)>0;})
+         .sort(function(a,b){return (b.paid||0)-(a.paid||0) || (b.cart||0)-(a.cart||0);});
+  items=items.slice(0,100);
   var when="";
   if(d&&d.at){
     var m=Math.round((Date.now()-d.at)/60000);
@@ -624,7 +645,9 @@ function renderCart(d){
   list.innerHTML="";
   if(!items.length){
     var e=document.createElement('div'); e.id='cartempty';
-    e.innerHTML="아직 데이터가 없어요.<br>PC 자동입력 프로그램이 켜져 있으면 몇 분 안에 채워져요.";
+    e.innerHTML = all.length
+      ? "이 탭에 해당하는 상품이 아직 없어요."
+      : "아직 데이터가 없어요.<br>PC 자동입력 프로그램이 켜져 있으면 몇 분 안에 채워져요.";
     list.appendChild(e); return;
   }
   items.forEach(function(it,i){
@@ -648,9 +671,16 @@ function renderCart(d){
     var nm=document.createElement('div'); nm.className='nm'; nm.textContent=it.n||''; info.appendChild(nm);
     var st=document.createElement('div'); st.className='st';
     var ct=document.createElement('span'); ct.className='ct';
-    ct.textContent='장바구니 '+(it.cart||0)+'개'; st.appendChild(ct);
     var pd=document.createElement('span'); pd.className='pd';
-    pd.textContent=' · 결제 '+(it.paid||0)+'개'; st.appendChild(pd);
+    if(tab==='cart'){  // 보는 탭의 기준 수량을 앞에
+      ct.textContent='장바구니 '+(it.cart||0)+'개';
+      pd.textContent=' · 결제 '+(it.paid||0)+'개';
+      st.appendChild(ct); st.appendChild(pd);
+    } else {
+      pd.textContent='결제 '+(it.paid||0)+'개';
+      ct.textContent=' · 장바구니 '+(it.cart||0)+'개';
+      st.appendChild(pd); st.appendChild(ct);
+    }
     if(typeof it.price==='number'){
       var pr=document.createElement('span'); pr.style.color='#8a8a96';
       pr.textContent=' · '+it.price.toLocaleString('ko-KR')+'원'; st.appendChild(pr);
