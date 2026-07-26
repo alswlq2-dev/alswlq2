@@ -363,8 +363,10 @@ async function syncFromServer(first){
     var fsel=(sv.feat.v>0)?String(sv.feat.id||''):null;
     if(fsel!==window.__cueFeatSel){ window.__cueFeatSel=fsel; paintCartSel(); }
   }
-  // 🤖 도우미 박스 갱신 (10초에 한 번 — 2초 폴링 5회마다)
+  // 🤖 도우미 박스 갱신 (10초에 한 번 — 2초 폴링 5회마다) + 제외목록 동기화(30초)
   window.__cueAiTick=(window.__cueAiTick||0)+1;
+  if(first) fetchExcl();
+  if(window.__cueAiTick%15===0) fetchExcl();
   if(first || window.__cueAiTick%5===0) fetchAssist();
   if(state.seq!==lastPvSeq){
     lastPvSeq=state.seq;
@@ -592,6 +594,27 @@ async function keepAwake(){
 /* 🛒 장바구니 TOP — PC 자동입력(price_history)이 cart 노드로 밀어넣는 byv 집계
    window.* 전역 + function 선언만 사용 (아래 let 참조 금지: TDZ 함정) */
 function cartUrl(){ return dbUrl+"/cue/"+encodeURIComponent(topic)+"/cart.json"; }
+/* 제외 상품 — 타임딜 등. Firebase cue/{topic}/excl 에 번호 배열을 넣으면
+   프로그램 재시작 없이 목록·추천에서 즉시 사라진다 (방송 중 대응용) */
+function isExcluded(it){
+  var n=String((it&&it.n)||'');
+  if(n.indexOf('타임딜')>=0 || n.indexOf('배송비')>=0) return true;
+  var ex=window.__cueExcl;
+  if(!ex||!ex.length) return false;
+  var m=n.match(/^\s*(\d+)\s*번/);
+  if(!m) return false;
+  var num=String(parseInt(m[1],10));
+  for(var i=0;i<ex.length;i++){ if(String(parseInt(ex[i],10))===num) return true; }
+  return false;
+}
+async function fetchExcl(){
+  try{
+    var r=await fetch(dbUrl+"/cue/"+encodeURIComponent(topic)+"/excl.json");
+    if(!r.ok) return;
+    var j=await r.json();
+    window.__cueExcl = Array.isArray(j) ? j : ((j&&j.nums)||[]);
+  }catch(e){}
+}
 /* 갤탭 전송 횟수 기록 — 방송(labang)별로 Firebase에 저장, 새로고침해도 유지 */
 function sentUrl(lb){ return dbUrl+"/cue/"+encodeURIComponent(topic)+"/sent/"+encodeURIComponent(lb)+".json"; }
 function sentCount(id){
@@ -676,7 +699,8 @@ function paintAssist(){
   if(aiFresh&&(ai.txt||'').trim()){ t.textContent=ai.txt; t.style.display='block'; }
   else{ t.style.display='none'; }
   var row=document.getElementById('airow'); row.innerHTML='';
-  var items=(aiFresh?(ai.recs||[]):[]).concat(recFresh?(rec.items||[]):[]);
+  var items=(aiFresh?(ai.recs||[]):[]).concat(recFresh?(rec.items||[]):[])
+             .filter(function(x){ return !isExcluded(x); });
   var seen={};
   items.forEach(function(it){
     var id=String(it.id||''); if(!id||seen[id]) return; seen[id]=1;
@@ -728,7 +752,7 @@ function setCartTab(t){
 }
 function renderCart(d){
   var sub=document.getElementById('cartsub'), list=document.getElementById('cartlist');
-  var all=(d&&d.items)||[];
+  var all=((d&&d.items)||[]).filter(function(x){ return !isExcluded(x); });
   var tab=window.__cueCartTab||'paid';
   var items = (tab==='cart')
     ? all.filter(function(x){return (x.cart||0)>0;})
