@@ -101,10 +101,10 @@
   .ytlike .yth{font-size:.8em;}
 
   /* 🛒 장바구니 TOP 탭 (갤탭 화면) — PC 자동입력 프로그램이 byv 집계를 밀어넣음 */
-  .cartbtn{position:fixed; bottom:8px; left:100px; z-index:6; width:52px; height:38px;
-    border-radius:10px; background:#141418; border:1px solid #26262e; color:#bbb;
-    font-size:19px; opacity:.45; transition:.2s;}
-  .cartbtn:hover{opacity:1;}
+  .cartbtn{position:fixed; bottom:8px; left:100px; z-index:6; height:40px; padding:0 16px;
+    border-radius:10px; background:#1c1c22; border:1px solid #5a5a1e; color:var(--accent2);
+    font-size:16px; font-weight:800; opacity:.95; display:flex; align-items:center; gap:6px;}
+  .cartbtn:active{transform:scale(.96);}
   #cartpanel{position:fixed; inset:0; background:#0a0a0c; z-index:60; display:none;
     flex-direction:column; padding:14px 16px 10px;}
   #cartpanel.show{display:flex;}
@@ -211,7 +211,7 @@
   <div class="big empty" id="dbig">대기 중…</div>
   <div class="dmini"><span class="dot" id="ddot"></span><span id="dstat">연결 중</span></div>
   <div class="dsize"><button onclick="dSize(-1)">−</button><button onclick="dSize(1)">+</button></div>
-  <button class="cartbtn" onclick="toggleCart()" title="장바구니 TOP">🛒</button>
+  <button class="cartbtn" onclick="toggleCart()" title="장바구니 TOP">🛒 장바구니</button>
   <div class="ytlike" id="ytlike"><span class="yth">👍</span><span id="ytliken">…</span></div>
 </div>
 
