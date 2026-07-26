@@ -142,6 +142,8 @@
   .cartrow .onair{display:none; flex:none; font-size:12px; font-weight:800; color:#1a1500;
     background:var(--accent2); border-radius:8px; padding:5px 9px; margin-left:6px;}
   .cartrow.sel .onair{display:block;}
+  .cartrow .sentbadge{flex:none; font-size:13px; font-weight:800; color:var(--ok);
+    background:#0f2018; border:1px solid #1e4030; border-radius:8px; padding:5px 9px; margin-left:6px;}
   /* 갤탭: PC에서 고른 상품 대형 카드 */
   #featcard{position:fixed; inset:0; background:#0a0a0c; z-index:70; display:none;
     flex-direction:column; align-items:center; justify-content:center; gap:2.2vh;
@@ -562,6 +564,13 @@ async function keepAwake(){
 /* 🛒 장바구니 TOP — PC 자동입력(price_history)이 cart 노드로 밀어넣는 byv 집계
    window.* 전역 + function 선언만 사용 (아래 let 참조 금지: TDZ 함정) */
 function cartUrl(){ return dbUrl+"/cue/"+encodeURIComponent(topic)+"/cart.json"; }
+/* 갤탭 전송 횟수 기록 — 방송(labang)별로 Firebase에 저장, 새로고침해도 유지 */
+function sentUrl(lb){ return dbUrl+"/cue/"+encodeURIComponent(topic)+"/sent/"+encodeURIComponent(lb)+".json"; }
+function sentCount(id){
+  var d=window.__cueCartData;
+  if(!d || !window.__cueSent || window.__cueSentLb!==(d.labang||'')) return 0;
+  return window.__cueSent[String(id)]||0;
+}
 function setCartPanel(show){
   var p=document.getElementById('cartpanel');
   p.classList.toggle('show', !!show);
@@ -579,10 +588,26 @@ function toggleCart(){
 /* PC에서 상품을 골라 갤탭에 크게 띄우기 — meta.feat {v:±시각, id, n, img, cart, paid, price}
    v>0 = 이 상품 띄워라 / v<0 = 내려라 (에지 트리거) */
 function sendFeat(it){
-  window.__cueFeatSel=String(it.id||'');
-  patchMeta({feat:{v:Date.now(), id:String(it.id||''), n:it.n||'', img:it.img||'',
+  var id=String(it.id||'');
+  window.__cueFeatSel=id;
+  patchMeta({feat:{v:Date.now(), id:id, n:it.n||'', img:it.img||'',
                    cart:it.cart||0, paid:it.paid||0,
                    price:(typeof it.price==='number'?it.price:0)}});
+  // 전송 횟수 +1 — 방송별 Firebase 기록 + 행 배지 즉시 갱신 (스크롤 유지 위해 재렌더 안 함)
+  var lb=(window.__cueCartData&&window.__cueCartData.labang)||"";
+  if(lb && id){
+    if(!window.__cueSent || window.__cueSentLb!==lb){ window.__cueSent={}; window.__cueSentLb=lb; }
+    window.__cueSent[id]=(window.__cueSent[id]||0)+1;
+    var body={}; body[id]=window.__cueSent[id];
+    try{ fetch(sentUrl(lb),{method:'PATCH',body:JSON.stringify(body)}); }catch(e){}
+    var rows=document.querySelectorAll('.cartrow.pick');
+    for(var i=0;i<rows.length;i++){
+      if(rows[i].dataset.id===id){
+        var sb=rows[i].querySelector('.sentbadge');
+        if(sb){ sb.textContent='📤 '+window.__cueSent[id]+'회'; sb.style.display=''; }
+      }
+    }
+  }
   paintCartSel();
 }
 function featClear(){
@@ -613,6 +638,13 @@ async function fetchCart(){
     var r=await fetch(cartUrl());
     if(!r.ok) return;
     window.__cueCartData=(await r.json())||{};
+    var lb=(window.__cueCartData.labang)||"";
+    if(mode==='c' && lb){   // 이 방송의 전송 기록 로드 (방송 바뀌면 자동 리셋)
+      try{
+        var sr=await fetch(sentUrl(lb));
+        if(sr.ok){ window.__cueSent=(await sr.json())||{}; window.__cueSentLb=lb; }
+      }catch(e){}
+    }
     renderCart(window.__cueCartData);
   }catch(e){}
 }
@@ -698,6 +730,10 @@ function renderCart(d){
     }
     info.appendChild(st); row.appendChild(info);
     if(mode==='c'){
+      var sc=sentCount(it.id);
+      var sb=document.createElement('span'); sb.className='sentbadge';
+      if(sc>0){ sb.textContent='📤 '+sc+'회'; } else { sb.style.display='none'; }
+      row.appendChild(sb);
       var oa=document.createElement('span'); oa.className='onair'; oa.textContent='📺 갤탭 표시중';
       row.appendChild(oa);
     }
