@@ -655,6 +655,17 @@ function renderCart(d){
       var pr=document.createElement('span'); pr.style.color='#8a8a96';
       pr.textContent=' · '+it.price.toLocaleString('ko-KR')+'원'; st.appendChild(pr);
     }
+    if(mode==='c'){  // 원가·마진은 PC 조작창에서만 (갤탭/방송 화면엔 절대 안 띄움)
+      if(typeof it.cost==='number'){
+        var co=document.createElement('span'); co.style.color='#8a8a96';
+        co.textContent=' · 원가 '+it.cost.toLocaleString('ko-KR')+'원'; st.appendChild(co);
+      }
+      if(typeof it.mg==='number'){
+        var mg=document.createElement('span');
+        mg.style.cssText='font-weight:800;color:'+(it.mg>0?'#3fd68a':'#ff5959')+';';
+        mg.textContent=' · 남는 '+it.mg.toLocaleString('ko-KR')+'원'; st.appendChild(mg);
+      }
+    }
     info.appendChild(st); row.appendChild(info);
     if(mode==='c'){
       var oa=document.createElement('span'); oa.className='onair'; oa.textContent='📺 갤탭 표시중';
