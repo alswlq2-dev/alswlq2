@@ -132,6 +132,23 @@
   .cartrow .st .ct{color:var(--accent2); font-weight:800;}
   .cartrow .st .pd{color:#7dd3fc; font-weight:700;}
   #cartempty{color:var(--dim); font-size:16px; text-align:center; padding:40px 10px; line-height:1.7;}
+  /* PC 조작창: 행을 눌러 갤탭에 띄우는 선택 UI */
+  .cartrow.pick{cursor:pointer; border-radius:12px; transition:.12s;}
+  .cartrow.pick:hover{background:#1a1a20;}
+  .cartrow.pick.sel{background:#241f0c; outline:2px solid var(--accent2);}
+  .cartrow .onair{display:none; flex:none; font-size:12px; font-weight:800; color:#1a1500;
+    background:var(--accent2); border-radius:8px; padding:5px 9px; margin-left:6px;}
+  .cartrow.sel .onair{display:block;}
+  /* 갤탭: PC에서 고른 상품 대형 카드 */
+  #featcard{position:fixed; inset:0; background:#0a0a0c; z-index:70; display:none;
+    flex-direction:column; align-items:center; justify-content:center; gap:2.2vh;
+    padding:3vh 4vw; text-align:center;}
+  #featcard.show{display:flex;}
+  #featcard img{max-height:56vh; max-width:92vw; object-fit:contain; border-radius:14px; background:#141418;}
+  #featcard .fnm{font-size:5.6vw; font-weight:800; line-height:1.2; word-break:keep-all;}
+  #featcard .fst{font-size:4.4vw; font-weight:800; font-variant-numeric:tabular-nums;}
+  #featcard .fst .c1{color:#7dd3fc;}
+  #featcard .fst .c2{color:var(--accent2);}
 
   #modal{position:fixed; inset:0; background:rgba(0,0,0,.8); display:none; align-items:center; justify-content:center; z-index:100; padding:20px;}
   #modal.show{display:flex;}
@@ -220,10 +237,16 @@
   <div class="carthead">
     <span class="t">🛒 장바구니 TOP</span>
     <span class="sub" id="cartsub">불러오는 중…</span>
-    <button class="x" id="cartremote" onclick="remoteCartToggle()" style="display:none; border-color:#5a5a1e; color:var(--accent2);">📺 갤탭에 띄우기</button>
+    <button class="x" id="featclear" onclick="featClear()" style="display:none; border-color:#5a5a1e; color:var(--accent2);">📺 갤탭에서 내리기</button>
     <button class="x" onclick="toggleCart()">✕ 닫기</button>
   </div>
   <div id="cartlist"><div id="cartempty">아직 데이터가 없어요.<br>PC 자동입력 프로그램이 켜져 있으면 몇 분 안에 채워져요.</div></div>
+</div>
+
+<div id="featcard">
+  <img id="featimg" alt="" referrerpolicy="no-referrer">
+  <div class="fnm" id="featnm"></div>
+  <div class="fst" id="featst"></div>
 </div>
 
 <div id="modal"><div class="mcard">
@@ -303,9 +326,10 @@ async function syncFromServer(first){
     dispSize=sv.size; state.size=sv.size;
     const l=document.getElementById('szlbl'); if(l) l.textContent=sv.size;
   }
-  // 갤탭 장바구니 원격 상태를 조작창 버튼 라벨에 반영 (2초 폴링에 얹힘)
-  if(typeof sv.cartshow==='number' && sv.cartshow!==window.__cueCartRemote){
-    window.__cueCartRemote=sv.cartshow; paintCartRemote();
+  // 갤탭에 떠 있는 상품(feat) 상태를 조작창 행 하이라이트에 반영 (2초 폴링에 얹힘)
+  if(sv.feat && typeof sv.feat.v==='number'){
+    var fsel=(sv.feat.v>0)?String(sv.feat.id||''):null;
+    if(fsel!==window.__cueFeatSel){ window.__cueFeatSel=fsel; paintCartSel(); }
   }
   if(state.seq!==lastPvSeq){
     lastPvSeq=state.seq;
@@ -438,20 +462,21 @@ async function tick(){
     if(typeof m.blink==='number' && m.blink!==lastBlink){
       if(lastBlink!==0 || m.blink>0){
         doFlash();
-        // 깜빡 = "여기 봐" 신호 → 장바구니 목록이 카드를 가리지 않게 자동으로 내림
+        // 깜빡 = "여기 봐" 신호 → 장바구니 목록·상품 대형카드가 카드를 가리지 않게 자동으로 내림
         var cp=document.getElementById('cartpanel');
         if(cp && cp.classList.contains('show')) setCartPanel(false);
+        var fc=document.getElementById('featcard');
+        if(fc && fc.classList.contains('show')) hideFeat();
       }
       lastBlink=m.blink;
     }
-    // PC 조작창의 [📺 갤탭에 띄우기/내리기] 원격 신호 (에지 트리거 — 값이 바뀔 때만)
-    // 절대값 = 신호를 보낸 시각. 페이지 첫 로드 때는 30분 내 신선한 '띄우기'만 반영
-    // (몇 시간 전 잔재 신호로 다음 방송에서 갑자기 목록이 뜨는 것 방지)
-    if(typeof m.cartshow==='number' && m.cartshow!==window.__cueCartShowSeen){
-      var cartFirst=(window.__cueCartShowSeen===undefined);
-      window.__cueCartShowSeen=m.cartshow;
-      if(!cartFirst) setCartPanel(m.cartshow>0);
-      else if(m.cartshow>0 && Date.now()-m.cartshow<1800000) setCartPanel(true);
+    // PC가 고른 상품 대형 카드 (에지 트리거 — v 값이 바뀔 때만)
+    // v 절대값 = 신호 시각. 페이지 첫 로드 때는 30분 내 신선한 '띄우기'만 반영
+    if(m.feat && typeof m.feat.v==='number' && m.feat.v!==window.__cueFeatSeen){
+      var featFirst=(window.__cueFeatSeen===undefined);
+      window.__cueFeatSeen=m.feat.v;
+      if(m.feat.v>0){ if(!featFirst || Date.now()-m.feat.v<1800000) showFeat(m.feat); }
+      else if(!featFirst) hideFeat();
     }
     if(typeof m.seq==='number' && m.seq!==lastSeq){
       const b=await getJSON(bodyUrl());
@@ -539,27 +564,45 @@ function setCartPanel(show){
   if(show){
     fetchCart();
     window.__cueCartTimer=setInterval(fetchCart, 10000);  // 열려있는 동안만 10초 갱신
-    if(mode==='c'){ var rb=document.getElementById('cartremote'); if(rb){ rb.style.display='block'; } paintCartRemote(); }
+    if(mode==='c'){ var fb=document.getElementById('featclear'); if(fb){ fb.style.display='block'; } }
   }
 }
 function toggleCart(){
   var p=document.getElementById('cartpanel');
   setCartPanel(!p.classList.contains('show'));
 }
-/* PC 조작창에서 갤탭 화면에 원격으로 띄우기/내리기
-   meta.cartshow: 양수=띄워라 / 음수·0=내려라, 절대값을 키워가며 변화를 알림(에지 트리거) */
-function paintCartRemote(){
-  var rb=document.getElementById('cartremote'); if(!rb) return;
-  rb.textContent = (window.__cueCartRemote||0)>0 ? "📺 갤탭에서 내리기" : "📺 갤탭에 띄우기";
+/* PC에서 상품을 골라 갤탭에 크게 띄우기 — meta.feat {v:±시각, id, n, img, cart, paid, price}
+   v>0 = 이 상품 띄워라 / v<0 = 내려라 (에지 트리거) */
+function sendFeat(it){
+  window.__cueFeatSel=String(it.id||'');
+  patchMeta({feat:{v:Date.now(), id:String(it.id||''), n:it.n||'', img:it.img||'',
+                   cart:it.cart||0, paid:it.paid||0,
+                   price:(typeof it.price==='number'?it.price:0)}});
+  paintCartSel();
 }
-async function remoteCartToggle(){
-  var sv=(await readMeta())||{};
-  var cur=(typeof sv.cartshow==='number')?sv.cartshow:0;
-  var next=(cur>0?-1:1)*Date.now();   // 절대값=신호 시각 → 갤탭이 신선도 판단 가능
-  window.__cueCartRemote=next;
-  patchMeta({cartshow:next});
-  paintCartRemote();
+function featClear(){
+  window.__cueFeatSel=null;
+  patchMeta({feat:{v:-Date.now()}});
+  paintCartSel();
 }
+function paintCartSel(){
+  var rows=document.querySelectorAll('.cartrow.pick');
+  for(var i=0;i<rows.length;i++){
+    rows[i].classList.toggle('sel', !!window.__cueFeatSel && rows[i].dataset.id===window.__cueFeatSel);
+  }
+}
+function showFeat(f){
+  var img=document.getElementById('featimg');
+  if(f.img){ img.src=f.img; img.style.display='block'; } else { img.style.display='none'; img.src=''; }
+  document.getElementById('featnm').textContent=f.n||'';
+  var st=document.getElementById('featst'); st.innerHTML='';
+  var s1=document.createElement('span'); s1.className='c1';
+  s1.textContent='🔥 결제 '+(f.paid||0)+'개'; st.appendChild(s1);
+  var s2=document.createElement('span'); s2.className='c2';
+  s2.textContent=' · 🛒 장바구니 '+(f.cart||0)+'개'; st.appendChild(s2);
+  document.getElementById('featcard').classList.add('show');
+}
+function hideFeat(){ document.getElementById('featcard').classList.remove('show'); }
 async function fetchCart(){
   try{
     var r=await fetch(cartUrl());
@@ -576,7 +619,8 @@ function renderCart(d){
     when=(m<=0?"방금":m+"분 전")+" 갱신";
   }
   var bn=(d&&d.bname)||"";
-  sub.textContent=(bn?bn+" · ":"")+(when||"");
+  sub.textContent=(bn?bn+" · ":"")+(when||"")
+    +(mode==='c'&&items.length?" · 상품을 누르면 갤탭에 크게 떠요":"");
   list.innerHTML="";
   if(!items.length){
     var e=document.createElement('div'); e.id='cartempty';
@@ -585,6 +629,12 @@ function renderCart(d){
   }
   items.forEach(function(it,i){
     var row=document.createElement('div'); row.className='cartrow';
+    if(mode==='c'){   // PC 조작창: 행을 누르면 갤탭에 그 상품이 크게 뜸
+      row.classList.add('pick');
+      row.dataset.id=String(it.id||'');
+      row.onclick=function(){ sendFeat(it); };
+      if(window.__cueFeatSel && String(it.id||'')===window.__cueFeatSel) row.classList.add('sel');
+    }
     var rk=document.createElement('div'); rk.className='rank'+(i<3?' top':'');
     rk.textContent=(i+1); row.appendChild(rk);
     if(it.img){
@@ -606,6 +656,10 @@ function renderCart(d){
       pr.textContent=' · '+it.price.toLocaleString('ko-KR')+'원'; st.appendChild(pr);
     }
     info.appendChild(st); row.appendChild(info);
+    if(mode==='c'){
+      var oa=document.createElement('span'); oa.className='onair'; oa.textContent='📺 갤탭 표시중';
+      row.appendChild(oa);
+    }
     list.appendChild(row);
   });
 }
