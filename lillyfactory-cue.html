@@ -100,6 +100,39 @@
     font-size:5vw; font-weight:800; color:#fff; font-variant-numeric:tabular-nums; pointer-events:none;}
   .ytlike .yth{font-size:.8em;}
 
+  /* 🛒 장바구니 TOP 탭 (갤탭 화면) — PC 자동입력 프로그램이 byv 집계를 밀어넣음 */
+  .cartbtn{position:fixed; bottom:8px; left:100px; z-index:6; width:52px; height:38px;
+    border-radius:10px; background:#141418; border:1px solid #26262e; color:#bbb;
+    font-size:19px; opacity:.45; transition:.2s;}
+  .cartbtn:hover{opacity:1;}
+  #cartpanel{position:fixed; inset:0; background:#0a0a0c; z-index:60; display:none;
+    flex-direction:column; padding:14px 16px 10px;}
+  #cartpanel.show{display:flex;}
+  .carthead{display:flex; align-items:center; gap:10px; padding-bottom:10px;
+    border-bottom:1px solid var(--line); flex:none;}
+  .carthead .t{font-size:22px; font-weight:800;}
+  .carthead .sub{font-size:13px; color:var(--dim); flex:1; min-width:0;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .carthead .x{background:var(--panel); border:1px solid var(--line); color:var(--ink);
+    border-radius:10px; padding:9px 16px; font-size:15px; font-weight:700; flex:none;}
+  #cartlist{flex:1; overflow-y:auto; padding-top:8px;}
+  .cartrow{display:flex; align-items:center; gap:14px; padding:9px 4px;
+    border-bottom:1px solid #17171d;}
+  .cartrow .rank{width:34px; font-size:22px; font-weight:800; color:var(--dim);
+    text-align:center; flex:none; font-variant-numeric:tabular-nums;}
+  .cartrow .rank.top{color:var(--accent2);}
+  .cartrow img{width:74px; height:74px; object-fit:cover; border-radius:10px;
+    background:#141418; flex:none;}
+  .cartrow .noimg{width:74px; height:74px; border-radius:10px; background:#141418;
+    display:flex; align-items:center; justify-content:center; font-size:26px; flex:none;}
+  .cartrow .info{flex:1; min-width:0;}
+  .cartrow .nm{font-size:21px; font-weight:700; line-height:1.3; word-break:keep-all;
+    overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;}
+  .cartrow .st{font-size:16px; margin-top:3px; font-variant-numeric:tabular-nums;}
+  .cartrow .st .ct{color:var(--accent2); font-weight:800;}
+  .cartrow .st .pd{color:#7dd3fc; font-weight:700;}
+  #cartempty{color:var(--dim); font-size:16px; text-align:center; padding:40px 10px; line-height:1.7;}
+
   #modal{position:fixed; inset:0; background:rgba(0,0,0,.8); display:none; align-items:center; justify-content:center; z-index:100; padding:20px;}
   #modal.show{display:flex;}
   .mcard{background:var(--panel); border:1px solid var(--line); border-radius:22px; padding:30px; max-width:380px; width:100%; text-align:center;}
@@ -178,7 +211,17 @@
   <div class="big empty" id="dbig">대기 중…</div>
   <div class="dmini"><span class="dot" id="ddot"></span><span id="dstat">연결 중</span></div>
   <div class="dsize"><button onclick="dSize(-1)">−</button><button onclick="dSize(1)">+</button></div>
+  <button class="cartbtn" onclick="toggleCart()" title="장바구니 TOP">🛒</button>
   <div class="ytlike" id="ytlike"><span class="yth">👍</span><span id="ytliken">…</span></div>
+</div>
+
+<div id="cartpanel">
+  <div class="carthead">
+    <span class="t">🛒 장바구니 TOP</span>
+    <span class="sub" id="cartsub">불러오는 중…</span>
+    <button class="x" onclick="toggleCart()">✕ 닫기</button>
+  </div>
+  <div id="cartlist"><div id="cartempty">아직 데이터가 없어요.<br>PC 자동입력 프로그램이 켜져 있으면 몇 분 안에 채워져요.</div></div>
 </div>
 
 <div id="modal"><div class="mcard">
@@ -461,6 +504,69 @@ async function setYt(){
 async function keepAwake(){
   try{ if('wakeLock' in navigator) await navigator.wakeLock.request('screen'); }catch(e){}
   document.addEventListener('visibilitychange', async()=>{ if(document.visibilityState==='visible'){ try{ await navigator.wakeLock.request('screen'); }catch(e){} } });
+}
+
+/* 🛒 장바구니 TOP — PC 자동입력(price_history)이 cart 노드로 밀어넣는 byv 집계
+   window.* 전역 + function 선언만 사용 (아래 let 참조 금지: TDZ 함정) */
+function cartUrl(){ return dbUrl+"/cue/"+encodeURIComponent(topic)+"/cart.json"; }
+function toggleCart(){
+  var p=document.getElementById('cartpanel');
+  var show=!p.classList.contains('show');
+  p.classList.toggle('show', show);
+  if(window.__cueCartTimer){ clearInterval(window.__cueCartTimer); window.__cueCartTimer=null; }
+  if(show){
+    fetchCart();
+    window.__cueCartTimer=setInterval(fetchCart, 10000);  // 열려있는 동안만 10초 갱신
+  }
+}
+async function fetchCart(){
+  try{
+    var r=await fetch(cartUrl());
+    if(!r.ok) return;
+    renderCart((await r.json())||{});
+  }catch(e){}
+}
+function renderCart(d){
+  var sub=document.getElementById('cartsub'), list=document.getElementById('cartlist');
+  var items=(d&&d.items)||[];
+  var when="";
+  if(d&&d.at){
+    var m=Math.round((Date.now()-d.at)/60000);
+    when=(m<=0?"방금":m+"분 전")+" 갱신";
+  }
+  var bn=(d&&d.bname)||"";
+  sub.textContent=(bn?bn+" · ":"")+(when||"");
+  list.innerHTML="";
+  if(!items.length){
+    var e=document.createElement('div'); e.id='cartempty';
+    e.innerHTML="아직 데이터가 없어요.<br>PC 자동입력 프로그램이 켜져 있으면 몇 분 안에 채워져요.";
+    list.appendChild(e); return;
+  }
+  items.forEach(function(it,i){
+    var row=document.createElement('div'); row.className='cartrow';
+    var rk=document.createElement('div'); rk.className='rank'+(i<3?' top':'');
+    rk.textContent=(i+1); row.appendChild(rk);
+    if(it.img){
+      var im=document.createElement('img'); im.referrerPolicy='no-referrer'; im.src=it.img;
+      im.onerror=function(){ var n=document.createElement('div'); n.className='noimg'; n.textContent='👕'; this.replaceWith(n); };
+      row.appendChild(im);
+    } else {
+      var no=document.createElement('div'); no.className='noimg'; no.textContent='👕'; row.appendChild(no);
+    }
+    var info=document.createElement('div'); info.className='info';
+    var nm=document.createElement('div'); nm.className='nm'; nm.textContent=it.n||''; info.appendChild(nm);
+    var st=document.createElement('div'); st.className='st';
+    var ct=document.createElement('span'); ct.className='ct';
+    ct.textContent='장바구니 '+(it.cart||0)+'개'; st.appendChild(ct);
+    var pd=document.createElement('span'); pd.className='pd';
+    pd.textContent=' · 결제 '+(it.paid||0)+'개'; st.appendChild(pd);
+    if(typeof it.price==='number'){
+      var pr=document.createElement('span'); pr.style.color='#8a8a96';
+      pr.textContent=' · '+it.price.toLocaleString('ko-KR')+'원'; st.appendChild(pr);
+    }
+    info.appendChild(st); row.appendChild(info);
+    list.appendChild(row);
+  });
 }
 
 /* QR / 링크 */
