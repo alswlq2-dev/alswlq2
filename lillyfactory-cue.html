@@ -495,11 +495,14 @@ function renderProducts(){
   g.innerHTML="";
   const q=(document.getElementById('pfilter')?.value||'').trim().toLowerCase();
   // 검색 우선: 입력이 없으면 ⭐(오늘 핵심)만, 입력하면 전체에서 번호·상품명 검색
-  // 토큰 분리 매칭 — "토아스 미라클"도 공백 없는 "토아스미라클앰플"에 맞는다
-  const toks=q.split(/\s+/).filter(Boolean);
+  // 토큰 분리 매칭 — "토아스 미라클"도 공백 없는 "토아스미라클앰플"에 맞는다.
+  // 특징 문구까지 뒤지고(예: "탈모"·"모공"), 선/썬·크리/클리 같은 표기 차이는 흡수한다.
+  const soft=s=>String(s||'').toLowerCase().replace(/[\s()\[\]·,.+*/-]/g,'')
+    .replace(/썬/g,'선').replace(/쉬/g,'시').replace(/샾/g,'샵');
+  const toks=q.split(/\s+/).filter(Boolean).map(soft).filter(Boolean);
   const hasStar=items.some(p=>p.star);
   let show = toks.length
-    ? items.filter(p=>{ const hay=((p.num||'')+" "+(p.name||'')).toLowerCase();
+    ? items.filter(p=>{ const hay=soft((p.num||'')+" "+(p.name||'')+" "+(p.info||''));
                         return toks.every(t=>hay.includes(t)); })
     : (hasStar ? items.filter(p=>p.star) : items);
   if(lbl&&items.length&&!q&&hasStar)
