@@ -233,7 +233,8 @@
     <span class="txt empty" id="cpv">아직 보낸 게 없어요</span></div>
   <div class="editor"><textarea id="ta" placeholder="멘트 입력 → Enter로 전송 (Shift+Enter 줄바꿈) · 이미지는 복사 후 Ctrl+V"></textarea></div>
   <div class="quick">
-    <div class="qh" id="pqh" style="display:none;"><span id="pqlbl">🧴 오늘 방송 상품</span></div>
+    <div class="qh" id="pqh" style="display:none;"><span id="pqlbl">🧴 오늘 방송 상품</span>
+      <input id="pfilter" placeholder="번호·이름 검색" style="background:#0a0a0c;border:1px solid var(--line);border-radius:8px;color:var(--ink);font-size:13px;padding:6px 10px;width:130px;outline:none;"></div>
     <div class="qgrid" id="pgrid"></div>
     <div class="qh"><span>⚡ 빠른 멘트 (눌러서 바로 전송)</span><button onclick="toggleEdit()">편집</button></div>
     <div class="qgrid" id="qgrid"></div>
@@ -429,6 +430,7 @@ function startCtrl(){
   renderQuick();
   fetchProducts();                                   // 🧴 오늘 방송 상품 패널
   setInterval(fetchProducts, 60000);
+  document.getElementById('pfilter').addEventListener('input', renderProducts);
   // 시작 시 서버 값을 읽어와 이어받는다 (예전처럼 0으로 리셋하지 않음)
   syncFromServer(true);
   if(pvTimer) clearInterval(pvTimer);
@@ -491,9 +493,10 @@ function renderProducts(){
   if(lbl&&items.length) lbl.textContent="🧴 오늘 방송 상품 "+items.length+"개"
     +(window.__cueProdsLb?" · 방송 "+window.__cueProdsLb:"")+" — 누르면 갤탭에 특징 카드";
   g.innerHTML="";
-  items.forEach(p=>{
+  const q=(document.getElementById('pfilter')?.value||'').trim().toLowerCase();
+  items.filter(p=>!q || ((p.num||'')+" "+(p.name||'')).toLowerCase().includes(q)).forEach(p=>{
     const b=document.createElement('button'); b.className='qbtn';
-    b.textContent=(p.num||'')+" "+(p.name||'');
+    b.textContent=(p.star?'⭐':'')+(p.num||'')+" "+(p.name||'');
     if(p.info) b.title=p.info;
     b.onclick=()=>{
       const price=(typeof p.price==='number')?p.price.toLocaleString('ko-KR')+"원":"";
