@@ -233,6 +233,8 @@
     <span class="txt empty" id="cpv">아직 보낸 게 없어요</span></div>
   <div class="editor"><textarea id="ta" placeholder="멘트 입력 → Enter로 전송 (Shift+Enter 줄바꿈) · 이미지는 복사 후 Ctrl+V"></textarea></div>
   <div class="quick">
+    <div class="qh" id="pqh" style="display:none;"><span id="pqlbl">🧴 오늘 방송 상품</span></div>
+    <div class="qgrid" id="pgrid"></div>
     <div class="qh"><span>⚡ 빠른 멘트 (눌러서 바로 전송)</span><button onclick="toggleEdit()">편집</button></div>
     <div class="qgrid" id="qgrid"></div>
     <div class="qedit" id="qedit">
@@ -255,7 +257,7 @@
 <input type="file" id="fileinput" accept="image/*" style="display:none;">
 
 <div id="disp">
-  <img id="dimg" alt="">
+  <img id="dimg" alt="" referrerpolicy="no-referrer">
   <div class="big empty" id="dbig">대기 중…</div>
   <div class="dmini"><span class="dot" id="ddot"></span><span id="dstat">연결 중</span></div>
   <div class="dsize"><button onclick="dSize(-1)">−</button><button onclick="dSize(1)">+</button></div>
@@ -425,6 +427,8 @@ function startCtrl(){
   document.getElementById('cch').textContent="#"+topic;
   state.size=dispSize;
   renderQuick();
+  fetchProducts();                                   // 🧴 오늘 방송 상품 패널
+  setInterval(fetchProducts, 60000);
   // 시작 시 서버 값을 읽어와 이어받는다 (예전처럼 0으로 리셋하지 않음)
   syncFromServer(true);
   if(pvTimer) clearInterval(pvTimer);
@@ -464,6 +468,43 @@ function renderQuick(){
   getQuick().forEach(txt=>{ const b=document.createElement('button'); b.className='qbtn'; b.textContent=txt; b.onclick=()=>{ document.getElementById('ta').value=txt; state.text=txt; pushContent(); }; g.appendChild(b); });
 }
 function toggleEdit(){ const e=document.getElementById('qedit'); document.getElementById('qta').value=getQuick().join("\n"); e.classList.toggle('show'); }
+
+/* 🧴 오늘 방송 상품 특징 카드 — Firebase cue/{topic}/products.json
+   준비 세션이 미리 넣어둔다: {labang, at, items:[{num,name,price,info,img}]}
+   버튼을 누르면 갤탭에 이미지+특징 텍스트가 카드로 뜬다 (기존 text/img 통로 재사용) */
+function prodUrl(){ return dbUrl+"/cue/"+encodeURIComponent(topic)+"/products.json"; }
+async function fetchProducts(){
+  try{
+    const r=await fetch(prodUrl()); if(!r.ok) return;
+    const d=await r.json();
+    window.__cueProds=(d&&d.items)||[];
+    window.__cueProdsLb=(d&&d.labang)?String(d.labang):"";
+    renderProducts();
+  }catch(e){}
+}
+function renderProducts(){
+  const g=document.getElementById('pgrid'), h=document.getElementById('pqh');
+  if(!g||!h) return;
+  const items=window.__cueProds||[];
+  h.style.display=items.length?'flex':'none';
+  const lbl=document.getElementById('pqlbl');
+  if(lbl&&items.length) lbl.textContent="🧴 오늘 방송 상품 "+items.length+"개"
+    +(window.__cueProdsLb?" · 방송 "+window.__cueProdsLb:"")+" — 누르면 갤탭에 특징 카드";
+  g.innerHTML="";
+  items.forEach(p=>{
+    const b=document.createElement('button'); b.className='qbtn';
+    b.textContent=(p.num||'')+" "+(p.name||'');
+    if(p.info) b.title=p.info;
+    b.onclick=()=>{
+      const price=(typeof p.price==='number')?p.price.toLocaleString('ko-KR')+"원":"";
+      state.text=(p.num||'')+" "+(p.name||'')+(price?" · "+price:"")+"\n"+(p.info||'');
+      state.img=p.img||"";
+      document.getElementById('ta').value=state.text;
+      pushContent();
+    };
+    g.appendChild(b);
+  });
+}
 function saveQuick(){ const arr=document.getElementById('qta').value.split("\n").map(s=>s.trim()).filter(Boolean); try{ localStorage.setItem('lf_quick',JSON.stringify(arr)); }catch(e){} renderQuick(); toggleEdit(); }
 
 /* 디스플레이 (폴링: 메타 자주, 본문은 바뀔 때만) */
