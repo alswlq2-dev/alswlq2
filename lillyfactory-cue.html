@@ -495,9 +495,13 @@ function renderProducts(){
   g.innerHTML="";
   const q=(document.getElementById('pfilter')?.value||'').trim().toLowerCase();
   // 검색 우선: 입력이 없으면 ⭐(오늘 핵심)만, 입력하면 전체에서 번호·상품명 검색
+  // 토큰 분리 매칭 — "토아스 미라클"도 공백 없는 "토아스미라클앰플"에 맞는다
+  const toks=q.split(/\s+/).filter(Boolean);
   const hasStar=items.some(p=>p.star);
-  let show = q ? items.filter(p=>((p.num||'')+" "+(p.name||'')).toLowerCase().includes(q))
-               : (hasStar ? items.filter(p=>p.star) : items);
+  let show = toks.length
+    ? items.filter(p=>{ const hay=((p.num||'')+" "+(p.name||'')).toLowerCase();
+                        return toks.every(t=>hay.includes(t)); })
+    : (hasStar ? items.filter(p=>p.star) : items);
   if(lbl&&items.length&&!q&&hasStar)
     lbl.textContent="🧴 오늘 핵심 "+show.length+"개 표시 중 (전체 "+items.length+"개) — 번호나 이름을 검색하면 전체에서 찾아요";
   show.forEach(p=>{
