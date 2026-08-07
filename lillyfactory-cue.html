@@ -494,7 +494,13 @@ function renderProducts(){
     +(window.__cueProdsLb?" · 방송 "+window.__cueProdsLb:"")+" — 누르면 갤탭에 특징 카드";
   g.innerHTML="";
   const q=(document.getElementById('pfilter')?.value||'').trim().toLowerCase();
-  items.filter(p=>!q || ((p.num||'')+" "+(p.name||'')).toLowerCase().includes(q)).forEach(p=>{
+  // 검색 우선: 입력이 없으면 ⭐(오늘 핵심)만, 입력하면 전체에서 번호·상품명 검색
+  const hasStar=items.some(p=>p.star);
+  let show = q ? items.filter(p=>((p.num||'')+" "+(p.name||'')).toLowerCase().includes(q))
+               : (hasStar ? items.filter(p=>p.star) : items);
+  if(lbl&&items.length&&!q&&hasStar)
+    lbl.textContent="🧴 오늘 핵심 "+show.length+"개 표시 중 (전체 "+items.length+"개) — 번호나 이름을 검색하면 전체에서 찾아요";
+  show.forEach(p=>{
     const b=document.createElement('button'); b.className='qbtn';
     b.textContent=(p.star?'⭐':'')+(p.num||'')+" "+(p.name||'');
     if(p.info) b.title=p.info;
